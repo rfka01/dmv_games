@@ -1,0 +1,64 @@
+HOPPLER - frei nach Perestroika/Toppler, fuer die NCR Decision Mate V
+====================================================================
+Version 0.16 (04.10.2026) - Testfassung
+
+Start:   HOPPLER      oder   HOPPLER n   (Start in Level n, 1..25)
+Braucht: DMV mit Farbgrafik, 8088/V20-Karte, MS-DOS,
+         CHARGEN0.OVR im selben Verzeichnis. Auf anderen Rechnern
+         bricht HOPPLER mit einer Meldung ab (Pruefung des GDC an A0h).
+
+Im Original wetteiferten Demokrat und Buerokrat um Geld und Ressourcen.
+Hier treffen sich Cartoonfiguren am Teich: Die Drachenlibelle huepft
+ueber kleiner werdende Seerosenblaetter. Der grosse Dummvogel will sie
+fangen.
+
+Ziffernblock: 8 hoch, 2 runter, 4 links, 6 rechts (Pfeiltasten gehen auch). Start unten links,
+Ziel ist die Muenze (bis Level 12 oben rechts). Das Raster waechst wie
+im Original von 7x4 (Level 1) auf 14x8 (ab Level 8), die Seerosen
+werden kleiner. Wer ins Wasser huepft, zu lange auf einem sinkenden
+Blatt sitzt oder einem Dummvogel begegnet, verliert ein Leben.
+Dummvoegel: Level 7-14 meist einer, Level 15 einer, ab Level 16 zwei.
+
+Tiere (Punkte wie im Original):
+  Wasserkaefer (blau)    50 x Level      Level 1: 2/50, dann (Level+1)/50
+  Biene (rot)            1000 x Level    Level/190 der Felder
+  Kroete (gelb)          -250 x Level    taucht selten waehrend des Spiels auf
+  Seerosenbluete (pink)  ab Level 5, hoechstens eine: Extraleben, Pech
+                         (Blatt sinkt), 2000 x Level, oder ein Dummvogel
+                         kommt bzw. geht
+Extraleben bei 10000, 30000, 70000, 150000 ... Punkten, hoechstens 6.
+
+Hat die Libelle kein brauchbares Blatt mehr neben sich, waechst auf
+einem leeren Nachbarfeld bald eines nach.
+
+Nach dem Spiel: Statistik (Spieldauer, Tiere verteilt/erwischt,
+Ausgaenge der Bluete) und Eintrag in die Bestenliste (10 Plaetze,
+Datei HOPPLER.HI).
+
+Titelbild: Leertaste = Start, B = Bestenliste, S = Ton an/aus, ESC = Ende
+Im Spiel:  P = Pause, S = Ton an/aus, ESC = zurueck zum Titel
+
+Toene: Der Tastatur-Controller (8741) spielt sie selbst (Befehl 06h,
+Noten von A 110 Hz bis D 1175 Hz). Die Klaenge des Originals sind als
+kurze Notenfolgen nachgebildet: Levelstart, Extraleben, Blubbern beim
+Versinken, Ertrinken, Gefangen, Dummvogel kommt/geht, Tiere, Bluete,
+Geschafft, Game Over. Beim Sprung gibt es keinen eigenen Ton - der
+Tastenklick der DMV kommt ohnehin.
+
+HOPPLER.DAT enthaelt die vorberechneten Seerosenbilder. Fehlt sie,
+rechnet HOPPLER sie beim ersten Start neu (dauert) und speichert sie.
+
+Neu bauen: Turbo Pascal 3.01A, HOPPLER.PAS als Hauptdatei, Compiler-
+Option C (Com-file). Dazu muessen CGRAF.LIB (TurboGraf 3.2, ComSoft)
+und SPRITES.INC im selben Verzeichnis liegen. SPRITES.INC entsteht mit
+tools/mksprites.py aus tools/sprites_def.py.
+
+HOPPLER - loosely based on Perestroika/Toppler, for the NCR DMV
+The dragonfly hops across shrinking lily pads to reach the coin while
+the big dumb bird tries to catch it. Numeric keypad 8/2/4/6, S toggles sound, 25 levels,
+growing grid and bonus frequencies as in the 1990 original.
+Needs a colour DMV and CHARGEN0.OVR in the same directory.
+
+Code: Claude (Anthropic), Idee und Prompts / idea and prompts: rfka01
+Lizenz / License: MIT (ohne CGRAF.LIB und CHARGEN0.OVR, die gehoeren
+zu TurboGraf von ComSoft)

@@ -1,0 +1,5 @@
+# DOS-Dateien unveraendert lassen (CRLF, Codepage 437)
+*.PAS -text
+*.INC -text
+*.TXT -text
+*.IMG binary
