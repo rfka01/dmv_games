@@ -7,6 +7,8 @@ Games for the NCR Decision Mate V (DMV) with colour graphics (µPD7220) under MS
 |---|---|---|
 | **Hoppler** – frei nach Perestroika/Toppler / loosely based on Perestroika/Toppler | [`hoppler/`](hoppler/) | [`images/HOPPLER-V0.16.IMG`](images/HOPPLER-V0.16.IMG) |
 
+[![Hoppler](hoppler/screenshots/titel.png)](hoppler/)
+
 ## Aufbau / Layout
 
 - je Spiel ein Verzeichnis mit Quellen und Werkzeugen / one directory per game with sources and tools

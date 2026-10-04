@@ -4,6 +4,11 @@
 
 Version 0.16 (04.10.2026, Testfassung / test release) – Diskette / disk image: [`../images/HOPPLER-V0.16.IMG`](../images/HOPPLER-V0.16.IMG)
 
+![Titelbild / title screen](screenshots/titel.png)
+![Level 1](screenshots/level1.png)
+
+*Screenshots: MAME, Treiber / driver `dmv`*
+
 ## Deutsch
 
 Im Original (Perestroika/Toppler, Moskau 1990) wetteiferten Demokrat und Bürokrat um Geld und Ressourcen.
