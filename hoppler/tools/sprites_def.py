@@ -184,3 +184,101 @@ BLUETE = [            # Seerosenbluete, pink
 def mirror(rows): return [r[::-1] for r in rows]
 LIB_L = mirror(LIB_R)
 VOGEL_L = mirror(VOGEL_R)
+
+# ---- Titelbild-Animationen (ab V0.17) ----
+LIB_FLY = [          # Libelle im Flug: Fluegel oben, Beine haengen
+"BB.KK......KK.BB",
+"BCB.KKKKKKKK.BCB",
+"BCCBKggggggKBCCB",
+".BCKWWWGGWWWKCB.",
+"..BKWBWGGWBWKB..",
+"...KWWWGGWWWK...",
+"...KGGGGGGGGK...",
+"...KGKGGGGKGK...",
+"...KGGKKKKGGK...",
+"...KGGGGGGGGK...",
+"...BKGggggGKB...",
+"....KGGGGGGK....",
+".....KggggK.....",
+".....K.KK.K.....",
+".....K....K.....",
+"....K......K....",
+]
+VOGEL_ZU = [         # Dummvogel blinzelt (Lider rot, Augen zu)
+"......M..M......",
+"....M.MMMM.M....",
+"...KKKKMMKKKK...",
+"..KRRRRKKRRRRK..",
+"..KRRRRKKRRRRK..",
+"..KKKKKKKKKKKK..",
+"..KWWWWKKWWWWK..",
+"...KKKKRRKKKK...",
+"..KRRRYYYYRRRK..",
+".KrrRRKYYKRRrrK.",
+".KrrRRRKKRRRrrK.",
+".KrrRRRRRRRRrrK.",
+"..KrRRRRRRRRrK..",
+"...KKKKKKKKKK...",
+".....K....K.....",
+"....KK....KK....",
+]
+COIN_N = [           # Muenze halb gedreht
+"......KKKK......",
+".....KYYYYK.....",
+"....KYWYYYYK....",
+"....KWYYYYYK....",
+"....KWYYYYYK....",
+"....KYYYYYYK....",
+"....KYYYYYYK....",
+"....KYYYYYYK....",
+"....KYYYYYYK....",
+"....KYYYYYYK....",
+"....KYYYYYYK....",
+"....KYYYYYYK....",
+"....KYYYYYYK....",
+".....KYYYYK.....",
+".....KYYYYK.....",
+"......KKKK......",
+]
+COIN_E = [           # Muenze von der Kante
+".......KK.......",
+"......KYYK......",
+"......KWYK......",
+"......KWYK......",
+"......KYYK......",
+"......KYYK......",
+"......KYYK......",
+"......KYYK......",
+"......KYYK......",
+"......KYYK......",
+"......KYYK......",
+"......KYYK......",
+"......KYYK......",
+"......KYYK......",
+"......KYYK......",
+".......KK.......",
+]
+KROETE_KOPF = [      # Kroetenkopf, schaut aus dem Wasser (wird von unten abgeschnitten)
+"................",
+"..KKKK....KKKK..",
+".KWWWWK..KWWWWK.",
+".KWWKWK..KWKWWK.",
+".KWWKWKKKKWKWWK.",
+".KYWWWYYYYWWWYK.",
+"KYYYYYYYYYYYYYYK",
+"KYYGYYYYYYYYGYYK",
+"KYYYYYYYYYYYYYYK",
+"KYKKKKKKKKKKKKYK",
+"KYYKYYYYYYYYKYYK",
+".KYYKKKKKKKKYYK.",
+"..KYYYYYYYYYYK..",
+"...KKKKKKKKKK...",
+"................",
+"................",
+]
+def emerge(rows, n):
+    """nur die oberen n Zeilen, unten buendig"""
+    return ['.' * 16] * (16 - n) + rows[:n]
+KROETE_K1 = emerge(KROETE_KOPF, 6)
+KROETE_K2 = emerge(KROETE_KOPF, 10)
+KROETE_K3 = emerge(KROETE_KOPF, 14)

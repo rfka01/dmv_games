@@ -1,11 +1,12 @@
 program Hoppler;
 
 { HOPPLER - frei nach Perestroika/Toppler fuer die NCR Decision Mate V
-  Turbo Pascal 3.01A + TurboGraf 3.2 (CGRAF.LIB), Farbgrafik 640x400
+  Turbo Pascal 3.01A, Farbgrafik 640x400 - ohne TurboGraf:
+  Grafik, Text und Ton kommen aus DMVGFX.INC, die Schrift aus FONT.INC,
+  die Figuren aus SPRITES.INC (alle drei im selben Verzeichnis).
   Code: Claude (Anthropic), Prompts: rfka01 - 2026
   Lizenz: MIT
 
-  Laufzeit: CHARGEN0.OVR (TurboGraf-Zeichensatz) im aktuellen Verzeichnis.
   Beim ersten Start werden die Seerosenbilder berechnet und in HOPPLER.DAT
   gespeichert; danach nur noch geladen.
   Die Quelle ist in Codepage 437 geschrieben (Umlaute in den Texten).
@@ -14,14 +15,12 @@ program Hoppler;
   Locis 1990), aus dem Maschinencode abgelesen. }
 
 {$C-}
-{$I CGRAF.LIB}
+{$I FONT.INC}
+{$I DMVGFX.INC}
 
 type
-  Spr16 = array[0..2, 0..1, 0..15] of integer;  { Ebene, SET/RESET, Zeile }
-  Pat8  = array[0..7] of byte;
   ImgA  = array[0..4095] of integer;  { (Ebene*Zeilen+Zeile)*Worte+Wort }
   ImgP  = ^ImgA;
-  Str80 = string[80];
 
 {$I SPRITES.INC}
 
@@ -33,23 +32,13 @@ const
   RingBase = 21;         { Bild 21+r: Ringe mit Halbachse r }
   NImg    = 42;
   LastLevel = 25;
-  Version = 'V0.16';
+  Version = 'V0.18';
   MaxBirds  = 2;
 
   { Raster je Level 1..8 (ab 8 gleich), wie im Original }
   GridC: array[1..8] of integer = (7, 8, 9, 10, 11, 12, 13, 14);
   GridR: array[1..8] of integer = (4, 4, 5, 5, 6, 7, 7, 8);
 
-  { Farben wie TurboGraf: 1 blau, 2 gruen, 4 rot }
-  cBlack = 0; cBlue = 1; cGreen = 2; cCyan = 3; cRed = 4;
-  cMagenta = 5; cYellow = 6; cWhite = 7;
-
-  { Muster fuer Dither, 4 Zeilen, Bit 0 = links }
-  patCheck = 0; patWave = 1; pat25 = 2; pat12 = 3;
-  PatRow: array[0..3, 0..3] of byte = (($55, $AA, $55, $AA),
-                                       ($FF, $EE, $55, $BB),
-                                       ($11, $00, $44, $00),
-                                       ($01, $00, $10, $00));
   TitleVar = 2;   { Hintergrund des Titelbilds: dunkelblau }
 
   { Zustaende einer Zelle }
@@ -58,8 +47,6 @@ const
   { Tiere auf den Seerosen }
   iNone = 0; iKaefer = 1; iBiene = 2; iKroete = 3; iBluete = 4;
 
-  PB: array[0..2] of integer = ($0000, $4000, $8000);  { gruen rot blau }
-  PBit: array[0..2] of integer = (2, 4, 1);
   UpTo: array[0..15] of integer = ($0001, $0003, $0007, $000F, $001F, $003F,
     $007F, $00FF, $01FF, $03FF, $07FF, $0FFF, $1FFF, $3FFF, $7FFF, $FFFF);
 
@@ -84,8 +71,6 @@ var
   ImW      : array[0..NImg, 0..1] of integer;   { Worte je Zeile }
   ImA      : array[0..NImg, 0..1] of integer;   { Worte links der Mitte }
   ImRec    : array[0..NImg, 0..1] of integer;   { 128-Byte-Saetze }
-  CurP     : Pat8;
-  CurOK    : boolean;
   Cols, Rows, PitchX, PitchY, CX0, CY0, HX, MaxRY : integer;
   LibC, LibR, CoinC, CoinR : integer;
   LibDir   : integer;              { 0 vorn 1 hinten 2 links 3 rechts }
@@ -98,7 +83,6 @@ var
   Score, Best, NextLife, LifeStep : real;
   StepT, MinS, EmptyMin, EmptyMax, BirdHop, StableMin, StableRng : integer;
   DrownS, BirdS, ShowS : integer;
-  Frames   : integer;
   Quit, Dead, Won, Frozen : boolean;
   StartLevel, VErr : integer;
   Ch       : char;
@@ -110,311 +94,7 @@ var
   StartSec  : real;                { DOS-Uhr beim Spielstart }
   HiTab    : array[1..10] of HiRec;
   HF       : file of HiRec;
-  { Tonwarteschlange fuer den 8741 (Befehl 06h) }
-  SqT, SqL : array[0..63] of byte;
-  SqHead, SqTail, SqPh : integer;
-  SoundOn  : boolean;
   BlubT    : integer;
-
-{ ---------------- GDC-Grundroutinen ---------------- }
-
-procedure Cmd(B: byte);
-begin
-  repeat until (Port[$A0] and 2) = 0;
-  Port[$A1] := B;
-end;
-
-procedure Par(B: byte);
-begin
-  repeat until (Port[$A0] and 2) = 0;
-  Port[$A0] := B;
-end;
-
-{ ---------------- Ton ueber den Tastatur-Controller 8741 ----------------
-  Befehl 06h an Port 41h, dann Ton+20h und Laenge+1Fh an Port 40h.
-  Ton n = 110 * 2^((n-1)/12) Hz (1..42), 0 = Pause; Laenge in 20 ms.
-  Der 8741 spielt den Ton selbst; der Befehl fuer den naechsten Ton
-  wartet in seinem Eingangspuffer, bis der laufende Ton fertig ist.
-  SndPump wird bei jedem Bildwechsel aufgerufen und wartet nie lange. }
-
-procedure SndPump;
-var I: integer;
-  function Free: boolean;      { Eingangspuffer leer, kurz warten }
-  var K: integer;
-  begin
-    K := 0;
-    while ((Port[$41] and 2) <> 0) and (K < 200) do K := K + 1;
-    Free := (Port[$41] and 2) = 0;
-  end;
-begin
-  for I := 1 to 4 do
-  begin
-    if SqPh = 0 then
-    begin
-      if SqHead = SqTail then exit;
-      if (Port[$41] and 2) <> 0 then exit;
-      Port[$41] := $06;
-      SqPh := 1;
-    end;
-    if SqPh = 1 then
-    begin
-      if (Port[$41] and 2) <> 0 then exit;   { voriger Ton laeuft noch }
-      Port[$40] := SqT[SqHead] + $20;
-      SqPh := 2;
-    end;
-    if SqPh = 2 then
-    begin
-      if not Free then exit;
-      Port[$40] := SqL[SqHead] + $1F;
-      SqHead := (SqHead + 1) and 63;
-      SqPh := 0;
-    end;
-  end;
-end;
-
-procedure Tone(N, L: integer);         { in die Warteschlange }
-begin
-  if not SoundOn then exit;
-  if ((SqTail + 1) and 63) = SqHead then exit;
-  if L < 1 then L := 1;
-  SqT[SqTail] := N; SqL[SqTail] := L;
-  SqTail := (SqTail + 1) and 63;
-end;
-
-procedure SndClear;                    { Wartendes verwerfen }
-begin
-  SqTail := SqHead;
-  if SqPh = 0 then exit;
-  SqTail := (SqHead + 1) and 63;       { angefangenen Ton zu Ende senden }
-end;
-
-procedure WaitFrame;
-begin
-  repeat SndPump until (Port[$A0] and $20) = 0;   { Toene auch beim Warten }
-  repeat SndPump until (Port[$A0] and $20) <> 0;
-  Frames := Frames + 1;
-  if BlubT > 0 then BlubT := BlubT - 1;
-end;
-
-procedure SndIdle;                     { warten, bis alles gesendet ist }
-var K: integer;
-begin
-  K := 0;
-  while ((SqHead <> SqTail) or (SqPh <> 0)) and (K < 300) do
-  begin
-    WaitFrame;
-    K := K + 1;
-  end;
-end;
-
-procedure Wait(N: integer);
-var I: integer;
-begin
-  for I := 1 to N do WaitFrame;
-end;
-
-procedure Mode(M: integer);      { 0 ersetzen 1 xor 2 loeschen 3 setzen }
-begin
-  Cmd($20 + M);
-end;
-
-procedure SetPRAM(var B: Pat8);  { GCHRD-Muster, nur wenn geaendert }
-var I: integer;
-    Same: boolean;
-begin
-  Same := CurOK;
-  if Same then
-    for I := 0 to 7 do if B[I] <> CurP[I] then Same := false;
-  if not Same then
-  begin
-    Cmd($78);
-    for I := 0 to 7 do Par(B[I]);
-    CurP := B;
-    CurOK := true;
-  end;
-end;
-
-procedure Solid;
-var B: Pat8;
-begin
-  FillChar(B, 8, $FF);
-  SetPRAM(B);
-end;
-
-procedure Cursor(X, Y, P: integer);   { Y von oben, P Ebene }
-var A: integer;
-begin
-  A := Y * 40 + (X shr 4) + PB[P];
-  Cmd($49);
-  Par(Lo(A));
-  Par(Hi(A));
-  Par((X and 15) shl 4);
-end;
-
-procedure GChr(W, H: integer);   { Flaeche W x H nach rechts und oben }
-begin
-  Cmd($4C);
-  Par($12);
-  Par(Lo(H - 1));
-  Par(((Hi(H - 1)) and $3F) or $40);
-  Par(Lo(W));
-  Par(Hi(W) and $3F);
-  Cmd($68);
-end;
-
-procedure ChrZoom(Z: integer);
-begin
-  Cmd($46);
-  Par(Z and 15);
-end;
-
-{ farbechte Box, X/Y = linke obere Ecke }
-procedure Box(X, Y, W, H, Col: integer);
-var P: integer;
-begin
-  if (W <= 0) or (H <= 0) then exit;
-  Solid;
-  for P := 0 to 2 do
-  begin
-    if (Col and PBit[P]) <> 0 then Mode(3) else Mode(2);
-    Cursor(X, Y + H - 1, P);
-    GChr(W, H);
-  end;
-end;
-
-{ geditherte Box: Farbe CA auf den Musterbits, CB sonst.
-  Muster am Bildschirm ausgerichtet; W sollte durch 8 teilbar sein }
-procedure DBox(X, Y, W, H, CA, CB, Pat: integer);
-var P, B, R, S, YB: integer;
-    PA, PN: Pat8;
-    A1, B1: boolean;
-begin
-  if (W <= 0) or (H <= 0) then exit;
-  YB := Y + H - 1;
-  for B := 8 to 15 do
-  begin
-    R := PatRow[Pat, (YB - 15 + B + 16) and 3];
-    if (B and 1) = 0 then S := (X + W) and 7 else S := X and 7;
-    R := ((R shr S) or (R shl (8 - S))) and $FF;
-    PA[B - 8] := R;
-    PN[B - 8] := (not R) and $FF;
-  end;
-  for P := 0 to 2 do
-  begin
-    A1 := (CA and PBit[P]) <> 0;
-    B1 := (CB and PBit[P]) <> 0;
-    if A1 and B1 then begin Solid; Mode(3); end
-    else if not (A1 or B1) then begin Solid; Mode(2); end
-    else if A1 then begin SetPRAM(PA); Mode(0); end
-    else begin SetPRAM(PN); Mode(0); end;
-    Cursor(X, YB, P);
-    GChr(W, H);
-  end;
-end;
-
-{ ---- Sprites: je Ebene SET- und RESET-Maske, 8x8-Bloecke per GCHRD ---- }
-
-procedure Block8(X, Y, P: integer; var R; Ofs, Shift, Z: integer);
-type IA = array[0..15] of integer;
-var I, Any: integer;
-    A: IA absolute R;
-    B: Pat8;
-begin
-  Any := 0;
-  for I := 0 to 7 do
-  begin
-    B[I] := Lo(A[Ofs + I] shr Shift);
-    Any := Any or B[I];
-  end;
-  if Any = 0 then exit;
-  SetPRAM(B);
-  Cursor(X, Y + 8 * (Z + 1) - 1, P);
-  GChr(8, 8);
-end;
-
-procedure Sprite16(X, Y: integer; var S: Spr16; Z: integer);
-{ Z = 0: 16x16, Z = 1: 32x32 (GDC-Zoom) }
-var P, O, K: integer;
-begin
-  K := 8 * (Z + 1);
-  if Z <> 0 then ChrZoom(Z);
-  for P := 0 to 2 do
-    for O := 0 to 1 do
-    begin
-      if O = 0 then Mode(3) else Mode(2);
-      Block8(X,     Y,     P, S[P, O], 0, 0, Z);
-      Block8(X + K, Y,     P, S[P, O], 0, 8, Z);
-      Block8(X,     Y + K, P, S[P, O], 8, 0, Z);
-      Block8(X + K, Y + K, P, S[P, O], 8, 8, Z);
-    end;
-  if Z <> 0 then ChrZoom(0);
-end;
-
-{ ---- Text: Zeichensatz CHARGEN0.OVR (von TurboGraf geladen), durchsichtig ---- }
-
-procedure Txt(X, Y: integer; S: Str80; Col, Z: integer);
-var I, H, J, P, A, K, Any, U: integer;
-    B: Pat8;
-begin
-  K := 8 * (Z + 1);
-  if Z <> 0 then ChrZoom(Z);
-  for I := 1 to Length(S) do
-  begin
-    A := Ord(S[I]) + 1;
-    U := -1;
-    if A > 128 then
-      for J := 0 to 6 do if UmlCode[J] = A - 1 then U := J;
-    if (A <= 128) or (U >= 0) then
-      for H := 0 to 1 do        { 0 = obere Haelfte (Bytes 9..16) }
-      begin
-        Any := 0;
-        for J := 0 to 7 do
-        begin
-          if U >= 0 then
-          begin
-            if H = 0 then B[J] := UmlGlyph[U, 9 + J] else B[J] := UmlGlyph[U, 1 + J];
-          end
-          else if H = 0 then B[J] := GGGCHG[A, 9 + J] else B[J] := GGGCHG[A, 1 + J];
-          Any := Any or B[J];
-        end;
-        if Any <> 0 then
-        begin
-          SetPRAM(B);
-          for P := 0 to 2 do
-          begin
-            if (Col and PBit[P]) <> 0 then Mode(3) else Mode(2);
-            Cursor(X, Y + H * K + K - 1, P);
-            GChr(8, 8);
-          end;
-        end;
-      end;
-    X := X + K;
-  end;
-  if Z <> 0 then ChrZoom(0);
-end;
-
-procedure TxtC(Y: integer; S: Str80; Col, Z: integer);   { zentriert }
-begin
-  Txt(320 - Length(S) * 4 * (Z + 1), Y, S, Col, Z);
-end;
-
-function Num(N, W: integer): Str80;   { mit fuehrenden Nullen }
-var S: Str80;
-begin
-  Str(N, S);
-  while Length(S) < W do S := '0' + S;
-  Num := S;
-end;
-
-function Max(A, B: integer): integer;
-begin
-  if A > B then Max := A else Max := B;
-end;
-
-function Min(A, B: integer): integer;
-begin
-  if A < B then Min := A else Min := B;
-end;
 
 { ---------------- Klangeffekte (nach dem Original, als Notenfolgen) ---------------- }
 
@@ -528,77 +208,7 @@ begin
   else begin SoundOn := true; Tone(35, 2); Tone(40, 3); end;
 end;
 
-procedure TxtB(X, Y: integer; S: Str80; Col: integer);   { fett }
-begin
-  Txt(X, Y, S, Col, 0);
-  Txt(X + 1, Y, S, Col, 0);
-end;
-
-{ Laeuft das Programm auf einer DMV? An A0h muss ein uPD7220 antworten:
-  VSYNC (Bit 5) und HBLANK (Bit 6) wechseln, FIFO leer (Bit 2) kommt vor,
-  FFh nie. Auf einem AT saesse dort der zweite Interrupt-Controller. }
-function IsDMV: boolean;
-var I, S: integer;
-    V0, V1, H0, H1, Emp, Bad: boolean;
-begin
-  V0 := false; V1 := false; H0 := false; H1 := false;
-  Emp := false; Bad := false;
-  for I := 1 to 30000 do
-  begin
-    S := Port[$A0];
-    if S = $FF then Bad := true;
-    if (S and $20) <> 0 then V1 := true else V0 := true;
-    if (S and $40) <> 0 then H1 := true else H0 := true;
-    if (S and $04) <> 0 then Emp := true;
-  end;
-  IsDMV := V0 and V1 and H0 and H1 and Emp and not Bad;
-end;
-
-function NumR(X: real; W: integer): Str80;   { Punkte, fuehrende Nullen }
-var S: Str80;
-    I: integer;
-begin
-  Str(X:W:0, S);
-  for I := 1 to Length(S) do if S[I] = ' ' then S[I] := '0';
-  NumR := S;
-end;
-
 { ---------------- Seerosenbilder ---------------- }
-
-{ Schickt NRows Zeilen zu je NWords Worten als WDAT-Strom an den GDC;
-  Md = WDAT-Befehl (22h loeschen, 23h setzen).
-  Src = erstes Wort, Ead = Wortadresse der ersten Zeile, nach jeder Zeile
-  werden Skip Bytes in der Quelle uebersprungen und Ead um 40 erhoeht. }
-procedure BlitAsm(var Src; Ead, NRows, NWords, Skip, Md: integer);
-begin
-  Inline(
-    $1E/                    {       push ds              }
-    $C5/$76/<Src/           {       lds  si,[bp+Src]     }
-    $8B/$56/<Ead/           {       mov  dx,[bp+Ead]     }
-    $8B/$5E/<NRows/         {       mov  bx,[bp+NRows]   }
-    $FC/                    {       cld                  }
-    $E4/$A0/$A8/$02/$75/$FA/{ ROW:  warten FIFO          }
-    $B0/$49/$E6/$A1/        {       CURS                 }
-    $E4/$A0/$A8/$02/$75/$FA/
-    $88/$D0/$E6/$A0/        {       EAD low              }
-    $E4/$A0/$A8/$02/$75/$FA/
-    $88/$F0/$E6/$A0/        {       EAD high             }
-    $E4/$A0/$A8/$02/$75/$FA/
-    $8A/$46/<Md/$E6/$A1/    {       WDAT (Modus Md)      }
-    $8B/$4E/<NWords/        {       mov  cx,[bp+NWords]  }
-    $AD/                    { WRD:  lodsw                }
-    $89/$C7/                {       mov  di,ax           }
-    $E4/$A0/$A8/$02/$75/$FA/
-    $89/$F8/$E6/$A0/        {       low byte             }
-    $E4/$A0/$A8/$02/$75/$FA/
-    $89/$F8/$88/$E0/$E6/$A0/{       high byte            }
-    $E2/$E5/                {       loop WRD             }
-    $03/$76/<Skip/          {       add  si,[bp+Skip]    }
-    $83/$C2/$28/            {       add  dx,40           }
-    $4B/                    {       dec  bx              }
-    $75/$B0/                {       jnz  ROW             }
-    $1F);                   {       pop  ds              }
-end;
 
 function ImS(N: integer): integer;        { Halbachse senkrecht von Bild N }
 begin
@@ -1209,6 +819,10 @@ begin
       #10: Ch := '2';
       #8:  Ch := '4';
       #12: Ch := '6';
+      'w', 'W': Ch := '8';                { WASD wie bei PC-Spielen }
+      's', 'S': Ch := '2';
+      'a', 'A': Ch := '4';
+      'd', 'D': Ch := '6';
     end;
   if Ch = #255 then Ch := #0;
 end;
@@ -1553,7 +1167,7 @@ begin
       '2': Jump( 0,  1);
       '4': Jump(-1,  0);
       '6': Jump( 1,  0);
-      's', 'S': ToggleSound;
+      't', 'T': ToggleSound;
       'p', 'P':
         begin
           Popup('PAUSE', 'Taste drcken', cRed);
@@ -1568,6 +1182,7 @@ begin
       if (Frames and 15) = 0 then HelpLib;
       if not Dead then MoveBirds;
       PlayTicks := PlayTicks + 1;
+      if BlubT > 0 then BlubT := BlubT - 1;
       SpawnToad;
       Sparkle;
     end;
@@ -1600,7 +1215,7 @@ end;
 
 procedure DrawTitle;
 const
-  TS: array[0..9] of integer = (21, 17, 21, 13, 9, 5, 0, 11, 16, 21);
+  TS: array[0..9] of integer = (17, 19, 21, 13, 9, 5, 0, 11, 16, 17);
 var I, Y: integer;
 begin
   Box(0, 0, 640, 400, cBlack);
@@ -1631,7 +1246,7 @@ begin
   Txt(24, 188, 'Im Original wetteiferten Demokrat und Brokrat um Geld und Ressourcen.', cYellow, 0);
   Txt(24, 206, 'Hier treffen sich Cartoonfiguren am Teich: Die Drachenlibelle hpft', cYellow, 0);
   Txt(24, 224, 'ber kleiner werdende Seerosenbl„tter. Der groáe Dummvogel will sie', cYellow, 0);
-  Txt(24, 242, 'fangen. Mit dem Ziffernblock 8 4 6 2 zur Mnze - nicht baden gehen!', cYellow, 0);
+  Txt(24, 242, 'fangen. Mit 8 4 6 2, WASD oder Pfeilen zur Mnze - nicht baden gehen!', cYellow, 0);
   Y := 268;
   Blit(9, 64, Y + 8);  ItemSprite(iKaefer, 64, Y + 8);
   Txt(96, Y, 'Wasserk„fer  50 x Level', cWhite, 0);
@@ -1642,7 +1257,7 @@ begin
   Txt(96, Y, 'Kr”te  -250 x Level', cWhite, 0);
   Blit(9, 344, Y + 8); ItemSprite(iBluete, 344, Y + 8);
   Txt(376, Y, 'Blte: Glck oder Pech', cWhite, 0);
-  TxtC(338, 'Leertaste: Start  B: Bestenliste  P: Pause  S: Ton  ESC: Ende', cGreen, 0);
+  TxtC(338, 'Leertaste: Start  B: Bestenliste  P: Pause  T: Ton  ESC: Ende', cGreen, 0);
   ShowSnd;
   TxtC(376, 'Code: Claude, Prompts: rfka01 (2026)', cCyan, 0);
   Txt(584, 384, Version, cBlue, 0);
@@ -1808,16 +1423,98 @@ begin
   ShowHi(P);
 end;
 
+{ ---------------- Titelbild-Animation ----------------
+  Alle paar Sekunden eine kleine, unauffaellige Bewegung: Libelle hebt ab,
+  Dummvogel blinzelt, Muenze dreht sich, Kroete schaut aus den Ringen.
+  Jeder Aufruf von AnimStep zeichnet hoechstens einen Schritt (ein Bild). }
+
+const
+  TY = 144;                         { Mitte der Seerosen im Titelbild }
+var
+  AnimK, AnimF, AnimWait, AnimLast : integer;
+
+procedure TitleLib(Dy: integer; Fly: boolean);
+begin
+  Water(16, 104, 32, 22);            { nur ueber der Seerose, Rest macht Blit }
+  Blit(17, 32, TY);                  { kleiner, ragt nicht ueber den Rand }
+  if Fly then Sprite16(16, TY - 26 - Dy, SprLibFly, 1)
+  else Sprite16(16, TY - 26 - Dy, SprLibF, 1);
+end;
+
+procedure TitleCoin(K: integer);    { 0 voll, 1 halb, 2 Kante }
+begin
+  Blit(17, 608, TY);
+  case K of
+    0: Coin(608, TY, 1);
+    1: Sprite16(592, TY - 22, SprCoinN, 1);
+    2: Sprite16(592, TY - 22, SprCoinE, 1);
+  end;
+end;
+
+procedure TitleToad(K: integer);    { 0 weg, 1..3 Kopf immer weiter oben }
+begin
+  Water(400, 112, 32, 22);           { ueber den Ringen, Rest macht Blit }
+  Blit(RingBase + 14, 416, TY);
+  case K of
+    1: Sprite16(400, TY - 27, SprToad1, 1);
+    2: Sprite16(400, TY - 27, SprToad2, 1);
+    3: Sprite16(400, TY - 27, SprToad3, 1);
+  end;
+end;
+
+procedure AnimStep;
+const
+  LiftH: array[0..23] of integer =      { Hoehe der Libelle je Schritt }
+    (2, 4, 6, 8, 10, 11, 12, 12, 12, 12, 12, 12,
+     12, 12, 12, 11, 10, 8, 6, 4, 2, 1, 0, 0);
+  CoinK: array[0..8] of integer = (1, 2, 1, 0, 1, 2, 1, 0, 0);
+  ToadK: array[0..10] of integer = (1, 2, 3, 3, 3, 3, 3, 3, 2, 1, 0);
+begin
+  if AnimK = 0 then
+  begin
+    AnimWait := AnimWait - 1;
+    if AnimWait > 0 then exit;
+    repeat AnimK := 1 + Random(4) until AnimK <> AnimLast;
+    AnimLast := AnimK;
+    AnimF := 0;
+  end;
+  case AnimK of
+    1: begin                                     { Libelle hebt ab }
+         if (AnimF and 1) = 0 then
+           TitleLib(LiftH[AnimF shr 1], (AnimF shr 1) < 21);
+         if AnimF >= 47 then AnimK := 0;
+       end;
+    2: begin                                     { Dummvogel blinzelt }
+         if AnimF = 0 then Sprite16(144, TY - 26, SprBirdZu, 1);
+         if AnimF = 6 then Sprite16(144, TY - 26, SprBird, 1);
+         if AnimF = 14 then Sprite16(144, TY - 26, SprBirdZu, 1);
+         if AnimF = 19 then begin Sprite16(144, TY - 26, SprBird, 1); AnimK := 0; end;
+       end;
+    3: begin                                     { Muenze dreht sich }
+         if (AnimF mod 5) = 0 then TitleCoin(CoinK[AnimF div 5]);
+         if AnimF >= 40 then AnimK := 0;
+       end;
+    4: begin                                     { Kroete schaut heraus }
+         if (AnimF mod 8) = 0 then TitleToad(ToadK[AnimF div 8]);
+         if AnimF >= 80 then AnimK := 0;
+       end;
+  end;
+  AnimF := AnimF + 1;
+  if AnimK = 0 then AnimWait := 150 + Random(250);   { 3..8 s Ruhe }
+end;
+
 procedure Title;
 var I: integer;
 begin
   repeat
     DrawTitle;
+    AnimK := 0; AnimLast := 0; AnimWait := 100 + Random(100);
     repeat
       WaitFrame;
+      AnimStep;
       I := Random(10);            { Zufall vom Warten abhaengig machen }
       ReadKey;
-      if (Ch = 's') or (Ch = 'S') then begin ToggleSound; ShowSnd; end;
+      if (Ch = 't') or (Ch = 'T') then begin ToggleSound; ShowSnd; end;
     until (Ch = ' ') or (Ch = #27) or (Ch = #13) or (Ch = 'b') or (Ch = 'B');
     if (Ch = 'b') or (Ch = 'B') then ShowHi(0);
   until (Ch = ' ') or (Ch = #27) or (Ch = #13);
@@ -1830,8 +1527,7 @@ begin
     Writeln('HOPPLER l„uft nur auf einer NCR Decision Mate V mit Farbgrafik.');
     Halt;
   end;
-  GINIT;
-  SELCHAR(0, 0);                  { CHARGEN0.OVR laden }
+  GfxInit;
   CurOK := false;
   Frames := 0;
   SqHead := 0; SqTail := 0; SqPh := 0; BlubT := 0;
@@ -1886,5 +1582,5 @@ begin
     end;
   until Quit;
   SndIdle;
-  GEXIT;
+  GfxExit;
 end.

@@ -2,12 +2,12 @@
 
 *frei nach Perestroika/Toppler für die NCR DMV – loosely based on Perestroika/Toppler for the NCR DMV*
 
-Version 0.16 (04.10.2026, Testfassung / test release) – Diskette / disk image: [`../images/HOPPLER-V0.16.IMG`](../images/HOPPLER-V0.16.IMG)
+Version 0.18 (08.10.2026, Testfassung / test release) – Diskette / disk image: [`../images/HOPPLER-V0.18.IMG`](../images/HOPPLER-V0.18.IMG)
 
 ![Titelbild / title screen](screenshots/titel.png)
 ![Level 1](screenshots/level1.png)
 
-*Screenshots: MAME, Treiber / driver `dmv`*
+*Screenshots: MAME, Treiber / driver `dmv` (Version 0.16)*
 
 ## Deutsch
 
@@ -20,11 +20,13 @@ zur Münze. Der große Dummvogel will sie fangen.
   Seerosenblüte (Glück oder Pech)
 - Extraleben bei 10000, 30000, 70000 … Punkten, Statistik nach dem Spiel, Bestenliste (HOPPLER.HI)
 - Töne über den Tastatur-Controller der DMV (8741, Befehl 06h)
+- Animiertes Titelbild: Libelle hebt ab, Dummvogel blinzelt, Münze dreht sich, Kröte schaut aus dem Wasser
 
-**Tasten:** Ziffernblock 8/2/4/6 oder Pfeiltasten · P Pause · S Ton an/aus · B Bestenliste (Titel) · ESC Ende
+**Tasten:** hoch 8 / W / Pfeil · runter 2 / S / Pfeil · links 4 / A / Pfeil · rechts 6 / D / Pfeil ·
+P Pause · T Ton an/aus · B Bestenliste (Titel) · ESC Ende
 **Start:** `HOPPLER` oder `HOPPLER n` (Start in Level n)
-**Braucht:** DMV mit Farbgrafik, 8088-Karte, MS-DOS; CHARGEN0.OVR im selben Verzeichnis.
-HOPPLER.DAT (vorberechnete Seerosenbilder) wird beim ersten Start erzeugt, falls sie fehlt.
+**Braucht:** DMV mit Farbgrafik, 8088-Karte, MS-DOS. HOPPLER.DAT (vorberechnete Seerosenbilder) wird beim
+ersten Start erzeugt, falls sie fehlt.
 
 ## English
 
@@ -36,31 +38,42 @@ the coin while the big dumb bird tries to catch it.
 - Bonus animals as in the original: water beetle, bee, toad, water lily flower
 - Extra lives, statistics after the game, high-score list
 - Sound via the DMV keyboard controller (8741, command 06h)
+- Animated title screen
 
-**Keys:** numeric keypad 8/2/4/6 or cursor keys · P pause · S sound on/off · B high scores (title) · ESC quit
-**Requires:** colour DMV, 8088 board, MS-DOS; CHARGEN0.OVR in the same directory.
+**Keys:** up 8 / W / cursor · down 2 / S / cursor · left 4 / A / cursor · right 6 / D / cursor ·
+P pause · T sound on/off · B high scores (title) · ESC quit
+**Requires:** colour DMV, 8088 board, MS-DOS.
 
 ## Dateien / Files
 
 | Datei / File | Inhalt / Contents |
 |---|---|
-| `HOPPLER.PAS` | Quelltext, Turbo Pascal 3.01A (Codepage 437, CRLF) / source code |
-| `SPRITES.INC` | Sprites und Umlaute, erzeugt von `tools/mksprites.py` / sprites and umlauts, generated |
+| `HOPPLER.PAS` | Hauptprogramm, Turbo Pascal 3.01A (Codepage 437, CRLF) / main program |
+| `DMVGFX.INC` | Grafik (µPD7220), Text, Ton (8741), Takt – auch für andere Programme / graphics, text, sound, timing – reusable |
+| `FONT.INC` | eigene 8×16-Schrift mit Umlauten, erzeugt von `tools/mkfont.py` / own 8×16 font, generated |
+| `SPRITES.INC` | Figuren, erzeugt von `tools/mksprites.py` / sprites, generated |
 | `HOPPLER.TXT` | Kurzanleitung auf der Diskette / readme on the disk |
-| `tools/sprites_def.py` | Sprite-Definitionen (ASCII-Raster) / sprite definitions |
-| `tools/mksprites.py` | erzeugt SPRITES.INC (braucht CHARGEN0.OVR im Verzeichnis darüber) / generates SPRITES.INC |
+| `tools/font_def.py` | Schrift als ASCII-Raster / font as ASCII art |
+| `tools/sprites_def.py` | Figuren als ASCII-Raster / sprites as ASCII art |
+| `tools/mkfont.py`, `tools/mksprites.py` | erzeugen FONT.INC und SPRITES.INC / generate FONT.INC and SPRITES.INC |
 | `tools/preview.py` | Vorschau der Sprites als PNG / sprite preview |
 | `tools/mkimg.py` | baut das Diskettenabbild aus einer 360-KB-DMV-Vorlage / builds the disk image from a 360 KB DMV template |
 
 ## Bauen / Building
 
-Turbo Pascal 3.01A, `HOPPLER.PAS` als Hauptdatei, Compiler-Option C (COM-Datei). Im selben Verzeichnis
-müssen `CGRAF.LIB` (TurboGraf 3.2, ComSoft – nicht in diesem Repository) und `SPRITES.INC` liegen.
+Turbo Pascal 3.01A, `HOPPLER.PAS` als Hauptdatei, Compiler-Option C (COM-Datei). `DMVGFX.INC`, `FONT.INC`
+und `SPRITES.INC` müssen im selben Verzeichnis liegen. Seit Version 0.17 wird TurboGraf nicht mehr gebraucht.
 
-Turbo Pascal 3.01A, main file `HOPPLER.PAS`, compiler option C (COM file). `CGRAF.LIB` (TurboGraf 3.2,
-ComSoft – not included) and `SPRITES.INC` must be in the same directory.
+Turbo Pascal 3.01A, main file `HOPPLER.PAS`, compiler option C (COM file). `DMVGFX.INC`, `FONT.INC` and
+`SPRITES.INC` must be in the same directory. TurboGraf is no longer needed since version 0.17.
+
+## Versionen / Versions
+
+- 0.18 – zusätzlich W/A/S/D, Ton jetzt mit T / W/A/S/D added, sound toggle moved to T
+- 0.17 – ohne TurboGraf (eigene Grafikbibliothek und Schrift), animiertes Titelbild / no TurboGraf, animated title
+- 0.16 – erste veröffentlichte Fassung / first published version
 
 ## Lizenz / License
 
-MIT (siehe [../LICENSE](../LICENSE)), ausgenommen CGRAF.LIB und CHARGEN0.OVR (TurboGraf, ComSoft).
+MIT (siehe [../LICENSE](../LICENSE)).
 Code: Claude (Anthropic) · Idee und Prompts / idea and prompts: rfka01

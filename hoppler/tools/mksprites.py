@@ -1,4 +1,4 @@
-# Erzeugt SPRITES.INC (Turbo Pascal 3 typed constants) fuer TOPPLER
+# Erzeugt SPRITES.INC (Turbo Pascal 3 typed constants) fuer HOPPLER
 # Farben: K=schwarz 0, B=blau 1, G=gruen 2, C=cyan 3, R=rot 4, M=magenta 5, Y=gelb 6, W=weiss 7
 # '.' = durchsichtig
 import sys, os
@@ -110,27 +110,11 @@ for nm, rows in (("SprLibF", LIB_F), ("SprLibB", LIB_B),
                  ("SprBirdL", VOGEL_L), ("SprBirdR", VOGEL_R),
                  ("SprKaefer", KAEFER), ("SprKroete", KROETE),
                  ("SprBiene", BIENE), ("SprBluete", BLUETE),
-                 ("SprCoin", COIN), ("SprSplash", SPLASH)):
+                 ("SprCoin", COIN), ("SprSplash", SPLASH),
+                 ("SprLibFly", LIB_FLY), ("SprBirdZu", VOGEL_ZU),
+                 ("SprCoinN", COIN_N), ("SprCoinE", COIN_E),
+                 ("SprToad1", KROETE_K1), ("SprToad2", KROETE_K2),
+                 ("SprToad3", KROETE_K3)):
     out.append(pas_arr(nm, [r.replace(' ', '.') for r in rows]))
-cg = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "CHARGEN0.OVR"), "rb").read()
-def glyph(c):
-    g = cg[c*16:c*16+16]; return list(g[8:16]) + list(g[0:8])
-def dots(rows, r):
-    rows = rows[:]; rows[r] |= 0x24; return rows
-SZ = [0,0,0,0x1C,0x22,0x22,0x12,0x0A,0x12,0x22,0x22,0x1A,0x02,0,0,0]
-UM = [("ae", dots(glyph(ord('a')), 4)), ("oe", dots(glyph(ord('o')), 4)),
-      ("ue", dots(glyph(ord('u')), 4)), ("Ae", dots(glyph(ord('A')), 1)),
-      ("Oe", dots(glyph(ord('O')), 1)), ("Ue", dots(glyph(ord('U')), 1)),
-      ("ss", SZ)]
-lines = ["  { Umlaute in CP437: ae 84h oe 94h ue 81h Ae 8Eh Oe 99h Ue 9Ah ss E1h;",
-         "    Aufbau wie GGGCHG: Bytes 1-8 untere, 9-16 obere Haelfte }",
-         "  UmlCode: array[0..6] of byte = ($84, $94, $81, $8E, $99, $9A, $E1);",
-         "  UmlGlyph: array[0..6, 1..16] of byte = ("]
-gl = []
-for nm, rows in UM:
-    b = rows[8:16] + rows[0:8]
-    gl.append("    (" + ",".join(f"${v:02X}" for v in b) + ")")
-lines.append(",\n".join(gl) + ");")
-out.append("\n".join(lines))
 open("SPRITES.INC","w",newline="\r\n").write("\n".join(out)+"\n")
 print("ok")
