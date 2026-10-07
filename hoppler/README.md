@@ -7,7 +7,7 @@ Version 0.18 (08.10.2026, Testfassung / test release) – Diskette / disk image:
 ![Titelbild / title screen](screenshots/titel.png)
 ![Level 1](screenshots/level1.png)
 
-*Screenshots: MAME, Treiber / driver `dmv` (Version 0.16)*
+*Screenshots: MAME, Treiber / driver `dmv` (Titel / title V0.18, Level 1 V0.16)*
 
 ## Deutsch
 
