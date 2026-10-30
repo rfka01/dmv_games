@@ -22,6 +22,10 @@ Das bekannte Legespiel: 144 Steine als Schildkröte aufgebaut, gleiche Paare abr
 
 Läuft unter **CP/M-8000** (Z8001-Karte K238) ab v015 mit K208 (512 KB): Grafik, Maus und Ton kommen aus **DMVGRAF** (rfka01/dmv_goodies, `dmvgraf/`), die Steinbilder liegen im freien Speicher der K208 (BIOS 72). Unter CP/M-8000 schreibt DMVGRAF direkt an den 7220 (Systemmodus über BDOS 62). Weitere Systeme (MS-DOS, CP/M-68K) folgen mit DMVGRAF.
 
+### Diskette
+
+[`images/MAHJONGG-8000-V0.10.IMG`](../images/MAHJONGG-8000-V0.10.IMG): 320-KB-Datendiskette (NCR-Format DD320, ohne Systemspuren) mit `MAHJONGG.Z8K`, `DMVSTEIN.TIL` und dem DMVGRAF-Test `GTEST.Z8K`. CP/M-8000 von A: starten, dann `B:` und `MAHJONGG` eingeben (der Steinsatz wird im aktuellen Laufwerk gesucht). Die Programme sind mit DRs `STARTUP.O` und `LIBCPM.A` gebunden und enthalten damit Digital Researchs C-Laufzeit. Andersons `MAHJONGG.TIL` ist nicht dabei.
+
 ### Übersetzen
 
 Unter CP/M-8000 mit DRs `zcc`, `asz8k`, `ld8k`: `src/mahjongg.c`, `src/mj.h` und aus `dmvgraf/src/` die Dateien `DMVGRAF.H GINTERN.H GFONT.H GRAF.C GBILD.C GEIN.C GHWCPM.C GHSEG.C GHDIR.C GSC1.8KN GDIR.8KN GZ8K.8KN` zusammen mit `STARTUP.O` und `LIBCPM.A` auf eine Diskette, dann `SUBMIT MJ` (`src/MJ.SUB`).
@@ -37,7 +41,7 @@ The well-known tile game: 144 tiles stacked as a turtle, remove matching pairs. 
 - **H** hint, **U** undo, **N** new game, **R** replay, **?** help (which tiles make a pair), **ESC** quit.
 - Tile sets in Nels Anderson's TIL format; the default is our own freely distributable set `DMVSTEIN.TIL` (drawn with one-pixel lines; the Chinese characters were rasterised once from Noto Sans CJK, SIL Open Font License, by `tools/glyphen.py`). `MAHJONGG X.TIL` loads another set, `MAHJONGG 4711` a game number, `MAHJONGG /B` sends everything through BIOS 66/67 instead of straight to the 7220 (for comparison).
 
-Runs under **CP/M-8000** (K238 Z8001 card) v015 or later with a K208 (512 KB). Graphics, mouse and sound come from **DMVGRAF** (rfka01/dmv_goodies, `dmvgraf/`).
+Runs under **CP/M-8000** (K238 Z8001 card) v015 or later with a K208 (512 KB). Disk: [`images/MAHJONGG-8000-V0.10.IMG`](../images/MAHJONGG-8000-V0.10.IMG), a 320 KB data disk (NCR DD320, no system tracks) with `MAHJONGG.Z8K`, `DMVSTEIN.TIL` and `GTEST.Z8K`; boot CP/M-8000 from A:, change to B: and run `MAHJONGG`. The programs are linked with DR's `STARTUP.O`/`LIBCPM.A` and so contain Digital Research's C runtime; Anderson's `MAHJONGG.TIL` is not included. Graphics, mouse and sound come from **DMVGRAF** (rfka01/dmv_goodies, `dmvgraf/`).
 
 ## Lizenz / License
 
