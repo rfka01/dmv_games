@@ -2,7 +2,7 @@
 
 *Mahjongg-Solitär für die NCR DMV – Mahjongg solitaire for the NCR DMV*
 
-Version 0.10 (30.10.2026), CP/M-8000 – in MAME getestet / tested in MAME (direkt am 7220 und mit `/B` über BIOS 66/67 / straight to the 7220 and with `/B` through BIOS 66/67)
+Version 0.10 (30.10.2026), CP/M-8000 – in MAME getestet / tested in MAME (direkt am 7220 und mit `/B` über BIOS 66/67 / straight to the 7220 and with `/B` through BIOS 66/67); CP/M-68K – in MAME gestartet, Maus noch zu bestätigen / started in MAME, mouse still to be confirmed
 
 ![Brett / board](screenshots/brett.png)
 ![Mono](screenshots/brett_mono.png)
@@ -20,11 +20,17 @@ Das bekannte Legespiel: 144 Steine als Schildkröte aufgebaut, gleiche Paare abr
 - Der gewählte Stein ist schattiert (Farbe: Weiß im Raster mit Blau; mono: 50-%-Raster).
 - Steinsätze im TIL-Format von Nels Andersons Mahjongg (42 Steine, 40 × 40 Punkte, 16 EGA-Farben). Vorgabe ist der eigene, frei verbreitbare Satz `DMVSTEIN.TIL` (aus `tools/mktil.py`, fein mit Linien von einem Punkt gezeichnet; die Schriftzeichen hat `tools/glyphen.py` einmal aus Noto Sans CJK, SIL Open Font License, gerastert und verdünnt). Ein anderer Satz: `MAHJONGG X.TIL`; ohne Spielnummer wird ein zufälliges Spiel gemischt, mit `MAHJONGG 4711` ein bestimmtes. `MAHJONGG /B` schickt alles über BIOS 66/67 statt direkt an den 7220 (zum Vergleich).
 
-Läuft unter **CP/M-8000** (Z8001-Karte K238) ab v015 mit K208 (512 KB): Grafik, Maus und Ton kommen aus **DMVGRAF** (rfka01/dmv_goodies, `dmvgraf/`), die Steinbilder liegen im freien Speicher der K208 (BIOS 72). Unter CP/M-8000 schreibt DMVGRAF direkt an den 7220 (Systemmodus über BDOS 62). Weitere Systeme (MS-DOS, CP/M-68K) folgen mit DMVGRAF.
+Läuft unter **CP/M-8000** (Z8001-Karte K238) ab v015 mit K208 (512 KB): Grafik, Maus und Ton kommen aus **DMVGRAF** (rfka01/dmv_goodies, `dmvgraf/`), die Steinbilder liegen im freien Speicher der K208 (BIOS 72). Unter CP/M-8000 schreibt DMVGRAF direkt an den 7220 (Systemmodus über BDOS 62). Unter CP/M-68K siehe unten; MS-DOS folgt mit DMVGRAF.
 
 ### Diskette
 
 [`images/MAHJONGG-8000-V0.10.IMG`](../images/MAHJONGG-8000-V0.10.IMG): 320-KB-Datendiskette (NCR-Format DD320, ohne Systemspuren) mit `MAHJONGG.Z8K`, `DMVSTEIN.TIL` und dem DMVGRAF-Test `GTEST.Z8K`. CP/M-8000 von A: starten, dann `B:` und `MAHJONGG` eingeben (der Steinsatz wird im aktuellen Laufwerk gesucht). Die Programme sind mit DRs `STARTUP.O` und `LIBCPM.A` gebunden und enthalten damit Digital Researchs C-Laufzeit. Andersons `MAHJONGG.TIL` ist nicht dabei.
+
+### CP/M-68K
+
+Dasselbe Spiel läuft auch auf der 68008-Karte **K234** unter CP/M-68K: unter unserem CP/M-68K (rfka01/dmv_os) und unter NCRs CP/M-68K 1.2, das keinen DMV-BIOS-Block hat – dann spricht DMVGRAF 7220, K806 und den 8741 selbst an. Die Steine liegen im Programm (60 KB), 256 KB Speicher reichen. `MAHJONGG /B` wirkt nur mit BIOS-Block. Mit gcc übersetzt (`make MAHJONGG.68K`, braucht `gcc-m68k-linux-gnu`), ohne DR-Code. Im Prüfstand von DMVGRAF zeigt es dieselben Bilder wie die PC-Simulation. In MAME lief es unter beiden CP/M-68K; die Maus ging dort noch nicht, die Korrektur (Tastaturabfrage mit BDOS 6 FEh statt FFh) ist in dieser Fassung, in MAME aber noch nicht bestätigt.
+
+Diskette [`images/MAHJONGG-68K-V0.10.IMG`](../images/MAHJONGG-68K-V0.10.IMG): 320-KB-Datendiskette (DD320) mit `MAHJONGG.68K`, `DMVSTEIN.TIL`, `GTEST.68K` und `MTEST.68K` (zeigt im Textbetrieb, was DMVGRAF erkennt, und jede Mausbewegung); CP/M-68K von A: starten, dann `B:` und `MAHJONGG`.
 
 ### Übersetzen
 
@@ -41,7 +47,7 @@ The well-known tile game: 144 tiles stacked as a turtle, remove matching pairs. 
 - **H** hint, **U** undo, **N** new game, **R** replay, **?** help (which tiles make a pair), **ESC** quit.
 - Tile sets in Nels Anderson's TIL format; the default is our own freely distributable set `DMVSTEIN.TIL` (drawn with one-pixel lines; the Chinese characters were rasterised once from Noto Sans CJK, SIL Open Font License, by `tools/glyphen.py`). `MAHJONGG X.TIL` loads another set, `MAHJONGG 4711` a game number, `MAHJONGG /B` sends everything through BIOS 66/67 instead of straight to the 7220 (for comparison).
 
-Runs under **CP/M-8000** (K238 Z8001 card) v015 or later with a K208 (512 KB). Disk: [`images/MAHJONGG-8000-V0.10.IMG`](../images/MAHJONGG-8000-V0.10.IMG), a 320 KB data disk (NCR DD320, no system tracks) with `MAHJONGG.Z8K`, `DMVSTEIN.TIL` and `GTEST.Z8K`; boot CP/M-8000 from A:, change to B: and run `MAHJONGG`. The programs are linked with DR's `STARTUP.O`/`LIBCPM.A` and so contain Digital Research's C runtime; Anderson's `MAHJONGG.TIL` is not included. Graphics, mouse and sound come from **DMVGRAF** (rfka01/dmv_goodies, `dmvgraf/`).
+Runs under **CP/M-8000** (K238 Z8001 card) v015 or later with a K208 (512 KB), and under **CP/M-68K** on the K234 68008 card – ours and NCR's own 1.2 without the DMV BIOS block (DMVGRAF then drives the 7220, K806 and 8741 itself); built with gcc (`make MAHJONGG.68K`), no DR code, disk [`images/MAHJONGG-68K-V0.10.IMG`](../images/MAHJONGG-68K-V0.10.IMG). The CP/M-68K version matches the PC simulation in DMVGRAF's test bench and started in MAME under both CP/M-68Ks; the mouse fix (BDOS 6 FEh instead of FFh) in this version is not yet confirmed in MAME. Disk: [`images/MAHJONGG-8000-V0.10.IMG`](../images/MAHJONGG-8000-V0.10.IMG), a 320 KB data disk (NCR DD320, no system tracks) with `MAHJONGG.Z8K`, `DMVSTEIN.TIL` and `GTEST.Z8K`; boot CP/M-8000 from A:, change to B: and run `MAHJONGG`. The programs are linked with DR's `STARTUP.O`/`LIBCPM.A` and so contain Digital Research's C runtime; Anderson's `MAHJONGG.TIL` is not included. Graphics, mouse and sound come from **DMVGRAF** (rfka01/dmv_goodies, `dmvgraf/`).
 
 ## Lizenz / License
 

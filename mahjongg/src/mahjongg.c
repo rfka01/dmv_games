@@ -350,6 +350,10 @@ char *name;
            uebrigen Farben wie die Vorgabe von DMVGRAF (hellgrau weiss,
            dunkelgrau Raster schwarz/blau bzw. mono, braun Raster gelb/rot) */
         gbmap(0, -1, 0, 2);
+        /* 12 (dunkelgruen, gruener Drache): Raster gruen/schwarz; mono
+           bleibt es schwarz wie Gruen */
+        if (hwart & HW_FARBE)
+                gbmap(12, 2, 0, 1);
         k = gbload(0, name, STW, STW, NART, GB_NIB, 0);
         if (k)
                 return k == GE_DATEI ? 1 : k == GE_KURZ ? 2 : 3;

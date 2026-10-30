@@ -1,4 +1,5 @@
-# Mahjongg - Simulation am PC (gcc) mit DMVGRAF aus rfka01/dmv_goodies.
+# Mahjongg - Simulation am PC (gcc) und CP/M-68K-Fassung mit DMVGRAF aus
+# rfka01/dmv_goodies.
 # DMVGRAF = Pfad zu dmv_goodies/dmvgraf/src
 DMVGRAF ?= ../../dmv_goodies/dmvgraf/src
 CC      = gcc
@@ -9,8 +10,18 @@ LIB     = $(DMVGRAF)/GRAF.C $(DMVGRAF)/GBILD.C $(DMVGRAF)/GEIN.C \
 mjsim: src/mahjongg.c src/mj.h
 	$(CC) $(CFLAGS) -o $@ src/mahjongg.c $(LIB)
 
+# CP/M-68K (K234), mit gcc fuer den 68000 (DMVGRAF tools/bau68.py)
+G68 = $(DMVGRAF)/GCRT68.S $(DMVGRAF)/GSUP68.S $(DMVGRAF)/GARG68.C \
+      src/mahjongg.c $(DMVGRAF)/GRAF.C $(DMVGRAF)/GBILD.C $(DMVGRAF)/GEIN.C \
+      $(DMVGRAF)/GK68.S $(DMVGRAF)/GHWCPM.C $(DMVGRAF)/GHD68K.C \
+      $(DMVGRAF)/GHPOOL.C
+
+MAHJONGG.68K: src/mahjongg.c src/mj.h
+	python3 $(DMVGRAF)/../tools/bau68.py -I $(DMVGRAF) -I src \
+		-D GBPOOL=61440 -o $@ $(G68)
+
 DMVSTEIN.TIL: tools/mktil.py tools/tiles_def.py
 	python3 tools/mktil.py $@
 
 clean:
-	rm -f mjsim *.ppm
+	rm -f mjsim MAHJONGG.68K *.ppm

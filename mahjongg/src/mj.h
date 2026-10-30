@@ -5,7 +5,11 @@
 #ifdef HOST
 #define UW unsigned short
 #else
+#ifdef __GNUC__                 /* gcc fuer CP/M-68K: int hat 32 Bit */
+#define UW unsigned short
+#else
 #define UW unsigned
+#endif
 #endif
 
 #define M16(x) ((x) & 0xFFFF)

@@ -20,7 +20,7 @@ SCHWARZ, BLAU, GRUEN, CYAN, ROT, MAGENTA, BRAUN, HELLGRAU = range(8)
 DUNKELGRAU, GELB, WEISS = 8, 14, 15
 FARBE = {'K': SCHWARZ, 'B': BLAU, 'G': GRUEN, 'C': CYAN, 'R': ROT,
          'M': MAGENTA, 'Y': GELB, 'D': DUNKELGRAU, 'W': WEISS, 'O': BRAUN,
-         'L': 10}                # L hellgruen
+         'L': 10, 'N': 12}       # L hellgruen, N dunkelgruen
 
 # Steinflaeche: x 4..35 (32 Punkte samt Kante, so liegen die Steine im
 # Spiel auf 8-Punkt-Grenzen dicht an dicht), y 0..33; Seitenwand 4 Punkte
@@ -77,7 +77,7 @@ class Stein:
         self.raster(bild, x0, y0, z, farbe)
 
     def ecke(self, zeichen, farbe=SCHWARZ):
-        self.raster(T.KLEIN[zeichen], FX1 - 4, FY0 + 1, 1, farbe)
+        self.raster(T.KLEIN[zeichen], FX1 - 4, FY0 + 2, 1, farbe)
 
     def schrift(self, text, y0, farbe):
         bw = len(text) * 6 - 1
@@ -228,8 +228,8 @@ def bambus(n):
         st = [(14, 0, 9, R), (4, 11, 9), (14, 11, 9), (24, 11, 9),
               (4, 22, 9), (14, 22, 9), (24, 22, 9)]
     elif n == 8:
-        st = [(0, 2, 13), (7, 2, 13), (15, 2, 13), (22, 2, 13),
-              (0, 17, 13), (7, 17, 13), (15, 17, 13), (22, 17, 13)]
+        st = [(3, 2, 13), (10, 2, 13), (16, 2, 13), (22, 2, 13),
+              (3, 17, 13), (10, 17, 13), (16, 17, 13), (22, 17, 13)]
     else:
         st = [(4, 0, 9), (13, 0, 9, R), (22, 0, 9), (4, 11, 9),
               (13, 11, 9, R), (22, 11, 9), (4, 22, 9), (13, 22, 9, R),
@@ -261,21 +261,13 @@ def wind(w):
 def drache(art):
     s = Stein()
     if art == 'weiss':
-        for (a, b, c, d) in ((x(3), y(2), x(28), y(29)),
-                             (x(5), y(4), x(26), y(27)),
-                             (x(9), y(8), x(22), y(23))):
-            for i in range(a, c + 1):
-                s.set(i, b, BLAU)
-                s.set(i, d, BLAU)
-            for j in range(b, d + 1):
-                s.set(a, j, BLAU)
-                s.set(c, j, BLAU)
+        s.mitte(T.WEISSDRACHE, z=1)
     elif art == 'rot':
         g = T.ZHONG1
         s.mitte1(g, IY + (32 - len(g)) // 2, ROT)
         s.ecke('C', ROT)
     else:
-        s.mitte(T.GRUENDRACHE, y0=y(1), z=1)
+        s.mitte(T.GRUENDRACHE, z=1)
     return s
 
 
@@ -313,43 +305,79 @@ def winter(s):                  # Schneeflocke
 
 
 def bluete(s, cx, cy, c, kern=GELB):
+    # fuenf Blaetter mit rotem Rand, Kern mit Staubgefaessen
     for w in (90, 162, 234, 306, 18):
         a = math.radians(w)
-        s.scheibe(cx + round(2 * math.cos(a)), cy - round(2 * math.sin(a)),
-                  1, c)
+        px, py = cx + round(3 * math.cos(a)), cy - round(3 * math.sin(a))
+        s.scheibe(px, py, 1, c)
+    for w in (54, 126, 198, 270, 342):
+        a = math.radians(w)
+        s.set(cx + round(3 * math.cos(a)), cy - round(3 * math.sin(a)), ROT)
+    for w in (90, 162, 234, 306, 18):
+        a = math.radians(w)
+        s.set(cx + round(1.4 * math.cos(a)), cy - round(1.4 * math.sin(a)),
+              ROT)
     s.set(cx, cy, kern)
 
 
 def fruehling(s):               # Kirschzweig
-    s.linie(IX + 2, IY + 21, IX + 12, IY + 12, BRAUN)
-    s.linie(IX + 12, IY + 12, IX + 26, IY + 4, BRAUN)
-    s.linie(IX + 12, IY + 12, IX + 14, IY + 4, BRAUN)
-    s.linie(IX + 18, IY + 9, IX + 21, IY + 14, BRAUN)
-    for (bx, by) in ((14, 3), (25, 4), (21, 15), (7, 15)):
+    # Zweig zwei Punkte stark, Seitentriebe fein
+    for d in (0, 1):
+        s.linie(IX + 2, IY + 21 + d, IX + 12, IY + 12 + d, BRAUN)
+        s.linie(IX + 12, IY + 12 + d, IX + 26, IY + 5 + d, BRAUN)
+    s.linie(IX + 12, IY + 12, IX + 14, IY + 5, BRAUN)
+    s.linie(IX + 19, IY + 9, IX + 21, IY + 14, BRAUN)
+    s.linie(IX + 6, IY + 17, IX + 4, IY + 13, BRAUN)
+    # Blaetter
+    for (ax, ay, bx, by) in ((16, 10, 18, 13), (9, 14, 11, 11), (23, 7, 26, 10)):
+        s.linie(IX + ax, IY + ay, IX + bx, IY + by, GRUEN)
+        s.linie(IX + ax + 1, IY + ay, IX + bx + 1, IY + by, GRUEN)
+    # Knospen
+    for (bx, by) in ((4, 12), (27, 11), (17, 3)):
+        s.scheibe(IX + bx, IY + by, 1, ROT)
+    for (bx, by) in ((12, 5), (24, 5), (20, 16), (7, 17)):
         bluete(s, IX + bx, IY + by, MAGENTA)
 
 
-def herbst(s):                  # Ahornblatt
+def herbst(s):                  # Ahornblatt, rotgolden
     cx, cy = IX + 14, IY + 12
     pkt = [(0, -11), (2, -6), (5, -8), (5, -4), (10, -6), (8, -1), (11, 1),
            (6, 3), (7, 6), (2, 5), (1, 8), (-1, 8), (-2, 5), (-7, 6),
            (-6, 3), (-11, 1), (-8, -1), (-10, -6), (-5, -4), (-5, -8),
            (-2, -6)]
     s.flaeche([(cx + a + 0.5, cy + b) for a, b in pkt], ROT)
-    for (a, b) in ((0, -9), (8, -4), (-8, -4), (5, 4), (-5, 4)):
-        s.linie(cx, cy + 4, cx + a, cy + b, HELLGRAU)
-    s.linie(cx, cy + 4, cx, cy + 10, BRAUN)
+    # Spitzen golden (Raster rot/gelb), Rand innen rot
+    for yy in range(cy - 12, cy + 10):
+        for xx in range(cx - 12, cx + 13):
+            if s.p[yy][xx] == ROT and ((xx - cx) ** 2 + (yy - cy - 1) ** 2
+                                       > 36):
+                s.set(xx, yy, BRAUN)
+    for (a, b) in ((0, -10), (9, -5), (-9, -5), (6, 5), (-6, 5)):
+        s.linie(cx, cy + 3, cx + a, cy + b, GELB)
+    s.linie(cx, cy + 3, cx, cy + 10, BRAUN)
 
 
 def chrysantheme(s):
-    cx, cy = IX + 14, IY + 8
-    s.linie(cx, cy + 6, cx, IY + 21, GRUEN)
-    s.linie(cx, IY + 17, cx - 5, IY + 13, GRUEN)
-    s.linie(cx, IY + 19, cx + 5, IY + 15, GRUEN)
-    for k in range(20):
-        strahl(s, cx, cy, k * 18, 3, 8, GELB)
-        strahl(s, cx, cy, k * 18 + 9, 3, 6, ROT)
+    cx, cy = IX + 14, IY + 9
+    # Stiel mit zwei Blaettern
+    s.linie(cx, cy + 6, cx, IY + 22, GRUEN)
+    s.flaeche([(cx, IY + 19), (cx - 3, IY + 15), (cx - 10, IY + 14),
+               (cx - 6, IY + 18)], GRUEN)
+    s.flaeche([(cx + 1, IY + 21), (cx + 4, IY + 17), (cx + 11, IY + 16),
+               (cx + 7, IY + 20)], GRUEN)
+    s.linie(cx - 1, IY + 18, cx - 7, IY + 15, HELLGRAU)
+    s.linie(cx + 2, IY + 20, cx + 8, IY + 17, HELLGRAU)
+    # Bluete: aeusserer Kranz gelb mit Spitzen, innen rot, Kern braun
+    for k in range(16):
+        w = k * 22.5
+        strahl(s, cx, cy, w, 4, 7, GELB)
+        strahl(s, cx, cy, w + 11.25, 4, 6, BRAUN)
+    for k in range(16):
+        a = math.radians(k * 22.5)
+        s.set(cx + round(8 * math.cos(a)), cy - round(8 * math.sin(a)), ROT)
+    s.ring(cx, cy, 3, ROT)
     s.scheibe(cx, cy, 2, BRAUN)
+    s.set(cx, cy, GELB)
 
 
 def pflaume(s):
@@ -384,21 +412,30 @@ def orchidee(s):
 
 
 def bambusblume(s):
-    x0 = IX + 8
+    x0 = IX + 7
+    # Halm drei Punkte breit mit Lichtkante und schwarzen Knoten
     for j in range(IY + 1, IY + 22):
-        s.set(x0, j, GRUEN)
-        s.set(x0 + 1, j, GRUEN)
-    for j in (IY + 6, IY + 12, IY + 18):
-        s.set(x0 - 1, j, GRUEN)
-        s.set(x0 + 2, j, GRUEN)
-    for (y0, l, r) in ((IY + 3, 0, 1), (IY + 9, 1, 1), (IY + 15, 1, 0)):
-        if r:
-            s.linie(x0 + 2, y0 + 3, x0 + 8, y0, GRUEN)
-            s.linie(x0 + 8, y0, x0 + 18, y0 - 1, GRUEN)
-            s.linie(x0 + 3, y0 + 3, x0 + 16, y0 + 1, GRUEN)
-        if l:
-            s.linie(x0 - 1, y0 + 3, x0 - 6, y0, GRUEN)
-            s.linie(x0 - 6, y0, x0 - 7, y0 - 2, GRUEN)
+        for i in range(3):
+            s.set(x0 + i, j, GRUEN)
+        s.set(x0 + 1, j, HELLGRAU)
+    for j in (IY + 1, IY + 7, IY + 13, IY + 19):
+        for i in range(-1, 4):
+            s.set(x0 + i, j, SCHWARZ)
+    # Blaetter als schmale Spitzen mit heller Mittelrippe
+    for (y0, rechts, lang) in ((IY + 4, 1, 19), (IY + 10, 1, 16),
+                               (IY + 10, 0, 7), (IY + 16, 1, 13),
+                               (IY + 16, 0, 6)):
+        if rechts:
+            a = x0 + 3
+            e = a + lang
+            s.flaeche([(a, y0 - 1), (a + 6, y0 - 3), (e, y0 - 4),
+                       (a + 6, y0 + 1), (a, y0 + 1)], GRUEN)
+            s.linie(a + 1, y0, e - 5, y0 - 2, HELLGRAU)
+        else:
+            a = x0
+            e = a - lang
+            s.flaeche([(a, y0 - 1), (a - 3, y0 - 3), (e, y0 - 4),
+                       (a - 3, y0 + 1), (a, y0 + 1)], GRUEN)
 
 
 def bild(maler, text):
