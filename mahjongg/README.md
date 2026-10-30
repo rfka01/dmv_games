@@ -2,7 +2,7 @@
 
 *Mahjongg-Solitär für die NCR DMV – Mahjongg solitaire for the NCR DMV*
 
-Version 0.10 (30.10.2026, Testfassung / test release), CP/M-8000
+Version 0.10 (30.10.2026), CP/M-8000 – in MAME getestet / tested in MAME (direkt am 7220 und mit `/B` über BIOS 66/67 / straight to the 7220 and with `/B` through BIOS 66/67)
 
 ![Brett / board](screenshots/brett.png)
 ![Mono](screenshots/brett_mono.png)
