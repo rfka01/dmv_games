@@ -1,0 +1,12 @@
+zcc -c -m1 graf.c
+zcc -c -m1 gbild.c
+zcc -c -m1 gein.c
+zcc -c -m1 ghwcpm.c
+zcc -c -m1 ghseg.c
+zcc -c -m1 ghdir.c
+asz8k -o gsc1.o gsc1.8kn
+asz8k -o gz8k.o gz8k.8kn
+asz8k -o gdir.o gdir.8kn
+zcc -c -m1 mahjongg.c
+ld8k -w -s -o mahjongg.z8k startup.o mahjongg.o graf.o gbild.o gein.o ghwcpm.o ghseg.o ghdir.o gdir.o gsc1.o gz8k.o -lcpm
+sizez8k mahjongg.z8k

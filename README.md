@@ -1,11 +1,12 @@
 # DMV Games
 
-Spiele für den NCR Decision Mate V (DMV) mit Farbgrafik (µPD7220) unter MS-DOS.
-Games for the NCR Decision Mate V (DMV) with colour graphics (µPD7220) under MS-DOS.
+Spiele für den NCR Decision Mate V (DMV) mit Farbgrafik (µPD7220) unter MS-DOS und CP/M-8000.
+Games for the NCR Decision Mate V (DMV) with colour graphics (µPD7220) under MS-DOS and CP/M-8000.
 
 | Spiel / Game | Verzeichnis / Directory | Diskette / Disk image |
 |---|---|---|
 | **Hoppler** – frei nach Perestroika/Toppler / loosely based on Perestroika/Toppler | [`hoppler/`](hoppler/) | [`images/HOPPLER-V0.18.IMG`](images/HOPPLER-V0.18.IMG) |
+| **Mahjongg** – Solitär mit Maus, CP/M-8000 (K238) / solitaire with mouse, CP/M-8000 (K238) | [`mahjongg/`](mahjongg/) | – (Startdiskette enthält DRs CP/M-8000 / boot disk contains DR's CP/M-8000) |
 
 [![Hoppler](hoppler/screenshots/titel.png)](hoppler/)
 
