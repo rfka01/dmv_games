@@ -1,0 +1,30 @@
+MAHJONGG 0.10 - Mahjongg-Solitaer fuer die NCR Decision Mate V
+==============================================================
+
+Fuer MS-DOS ab 2.11 auf der DMV mit 8088/V20-Karte (K230/K231/K235),
+Farb- oder Monografikkarte, am besten mit Maus-Adapter K806. Braucht
+etwa 64 KB Programmspeicher und 64 KB fuer die Steinbilder.
+
+Aufruf:  MAHJONGG [Nummer] [Steinsatz.TIL]
+
+  MAHJONGG          zufaelliges Spiel mit DMVSTEIN.TIL
+  MAHJONGG 4711     Spiel Nummer 4711 (jede Nummer gibt immer
+                    dasselbe Brett)
+  MAHJONGG X.TIL    anderer Steinsatz im TIL-Format von Nels Anderson
+
+Spiel: 144 Steine liegen als Schildkroete. Zwei gleiche Steine, die
+oben frei sind und links oder rechts frei liegen, ergeben ein Paar und
+werden mit zwei Mausklicks entfernt. Jahreszeiten passen zu jeder
+Jahreszeit, Blumen zu jeder Blume. Ziel: alle Steine abraeumen.
+
+Tasten:  H Hinweis   U Zurueck   N Neues Spiel   R Nochmal
+         ? Hilfe     ESC Ende
+
+Die Zeile oben zeigt die Spielnummer, die Zahl der Steine und wie
+viele Paare gerade moeglich sind.
+
+DMVSTEIN.TIL ist ein eigener, frei weitergebbarer Steinsatz. Grafik,
+Maus und Ton kommen aus der Bibliothek DMVGRAF (rfka01/dmv_goodies).
+Quellen: https://github.com/rfka01/dmv_games (mahjongg/).
+
+Code: Claude (Anthropic), Idee und Prompts: rfka01. Lizenz: MIT.

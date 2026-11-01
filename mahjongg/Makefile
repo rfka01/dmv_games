@@ -20,8 +20,14 @@ MAHJONGG.68K: src/mahjongg.c src/mj.h
 	python3 $(DMVGRAF)/../tools/bau68.py -I $(DMVGRAF) -I src \
 		-D GBPOOL=61440 -o $@ $(G68)
 
+# MS-DOS (8088/V20) mit gcc-ia16 und DMVGRAF aus lib/dos
+MAHJONGG.EXE: src/mahjongg.c src/mj.h
+	python3 $(DMVGRAF)/../tools/baudos.py -I $(DMVGRAF) -I src -o $@ \
+		$(DMVGRAF)/../lib/dos/GCRTDOS.O src/mahjongg.c \
+		$(DMVGRAF)/../lib/dos/DMVGRAF.A
+
 DMVSTEIN.TIL: tools/mktil.py tools/tiles_def.py
 	python3 tools/mktil.py $@
 
 clean:
-	rm -f mjsim MAHJONGG.68K *.ppm
+	rm -f mjsim MAHJONGG.68K MAHJONGG.EXE *.ppm

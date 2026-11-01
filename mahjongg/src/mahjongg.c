@@ -954,7 +954,7 @@ char **argv;
         if (r) {
                 gputs(r == 1 ? "Datei nicht gefunden: "
                       : r == 2 ? "Datei zu kurz (kein TIL-Satz): "
-                      : "Kein Bildspeicher (CP/M-8000 ab v015 mit K208): ");
+                      : "Kein Bildspeicher (K208, 64 KB frei?): ");
                 gputs(datei);
                 gputs("\n");
                 return 1;
