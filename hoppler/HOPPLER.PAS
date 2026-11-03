@@ -8,7 +8,7 @@ program Hoppler;
   Code: Claude (Anthropic), Prompts: rfka01 - 2026
   Lizenz: MIT
 
-  Laufzeit: HOPPLER.DAT (Seerosenbilder) und HOPPLER.SPR (Figuren) im
+  Laufzeit: HOPPLER.GBL (Bilder) und HOPPLER.SPR (Figuren) im
   aktuellen Verzeichnis. Uebersetzen mit "mAximum free dynamic memory"
   0400, damit DOS Speicher fuer die Bilder behaelt.
   Die Quelle ist in Codepage 437 geschrieben (Umlaute in den Texten).
@@ -22,7 +22,8 @@ program Hoppler;
 {$I DMVGRAF.INC}
 const SPMAX = 20;                 { Figuren 0..20 }
 {$I DMVSPR.INC}
-const BKMAX = 86;                 { Bilder: 43 Seerosen/Ringe in 2 Lagen }
+{$I GBLNUM.INC}
+const BKMAX = NBild;              { Bilder in HOPPLER.GBL }
 {$I DMVBKL.INC}
 
 { ---------------- Anschluss an DMVGRAF ----------------
@@ -225,7 +226,6 @@ var
   Cell     : array[0..13, 0..7] of CellRec;
   ImW      : array[0..NImg, 0..1] of integer;   { Worte je Zeile }
   ImA      : array[0..NImg, 0..1] of integer;   { Worte links der Mitte }
-  ImRec    : array[0..NImg, 0..1] of integer;   { 128-Byte-Saetze }
   Cols, Rows, PitchX, PitchY, CX0, CY0, HX, MaxRY : integer;
   LibC, LibR, CoinC, CoinR : integer;
   LibDir   : integer;              { 0 vorn 1 hinten 2 links 3 rechts }
@@ -387,76 +387,32 @@ begin
   gbput(N * 2 + V, GB_DURCH);
 end;
 
-procedure ImgSizes;                       { Breite (Worte), Lage, Saetze }
-var N, V, S, L, AL, AR: integer;
+procedure ImgSizes;                       { Breite (Worte) und Lage }
+var N, V, L, AR: integer;
 begin
   for N := 0 to NImg do
   begin
-    S := ImS(N);
-    L := RXof(S + 1) + 2;
+    L := RXof(ImS(N) + 1) + 2;
     for V := 0 to 1 do
     begin
-      AL := (L - 8 * V + 15) div 16;
+      ImA[N, V] := (L - 8 * V + 15) div 16;
       AR := (L - (15 - 8 * V) + 15) div 16;
       if AR < 0 then AR := 0;
-      ImA[N, V] := AL;
-      ImW[N, V] := AL + 1 + AR;
-      ImRec[N, V] := (4 * (2 * S + 5) * ImW[N, V] * 2 + 127) div 128;
+      ImW[N, V] := ImA[N, V] + 1 + AR;
     end;
   end;
 end;
 
-{ HOPPLER.DAT (Kennung "HOPPLER 0.6", wie bis V0.18): je Bild und Fassung
-  Worte [Ebene Maske/G/R/B][Zeile][Wort]. Fuer DMVGRAF umgestellt auf
-  Format 4: je Zeile Maske, G, R, B, Bit 0 links. }
+{ HOPPLER.GBL (tools/mkhopgbl.py): Bild N*2+Lage = Seerose bzw. Ringe,
+  dahinter die deckenden Ausschnitte fuer die Titel-Animation }
 procedure LoadImages;
-const
-  Sig: string[12] = 'HOPPLER 0.6';
-var F: file;
-    Hdr: array[0..127] of byte;
-    Raw: array[0..1151] of integer;       { groesstes Bild: 4 x 47 x 6 Worte }
-    Fm4: array[0..2303] of byte;
-    N, V, I, R, W, Y, P, K, Total: integer;
-    Ok: boolean;
 begin
   ImgSizes;
-  Total := 1;
-  for N := 0 to NImg do for V := 0 to 1 do Total := Total + ImRec[N, V];
-  Ok := false;
-  Assign(F, 'HOPPLER.DAT');
-  {$I-} Reset(F); {$I+}
-  if IOResult = 0 then
-  begin
-    if FileSize(F) = Total then
-    begin
-      BlockRead(F, Hdr, 1);
-      Ok := true;
-      for I := 1 to Length(Sig) do
-        if Hdr[I - 1] <> Ord(Sig[I]) then Ok := false;
-      if Ok then
-        for N := 0 to NImg do
-          for V := 0 to 1 do
-          begin
-            BlockRead(F, Raw, ImRec[N, V]);
-            R := 2 * ImS(N) + 5; W := ImW[N, V];
-            for Y := 0 to R - 1 do
-              for P := 0 to 3 do
-                for K := 0 to W - 1 do
-                begin
-                  I := (Y * 4 + P) * W * 2 + K * 2;
-                  Fm4[I] := Lo(Raw[(P * R + Y) * W + K]);
-                  Fm4[I + 1] := Hi(Raw[(P * R + Y) * W + K]);
-                end;
-            gbdef(N * 2 + V, W * 16, R, GB_EBN, Fm4);
-            if gerr <> 0 then Ok := false;
-          end;
-    end;
-    Close(F);
-  end;
-  if not Ok then
+  gbldv(0, 'HOPPLER.GBL', NBild, 0);
+  if (gerr <> 0) or (gbanz <> NBild) then
   begin
     GfxExit;
-    Writeln('HOPPLER.DAT fehlt oder ist beschaedigt (Fehler ', gerr, ').');
+    Writeln('HOPPLER.GBL fehlt oder ist beschaedigt (Fehler ', gerr, ').');
     Halt;
   end;
 end;
@@ -1490,40 +1446,19 @@ const
 var
   AnimK, AnimF, AnimWait, AnimLast : integer;
 
-procedure TitleLib(Dy: integer; Fly: boolean);
+{ Die Bilder ab imCoin, imLift, imBird, imToad sind Ausschnitte des
+  Titelstreifens mit fertigem Hintergrund; deckend gezeichnet ersetzen sie
+  den alten Zustand in einem Zug. }
+procedure TitlePut(N, X, Y: integer);
 begin
-  Water(16, 104, 32, 24);            { nur ueber der Seerose, Rest macht Blit }
-  Blit(17, 32, TY);                  { kleiner, ragt nicht ueber den Rand }
-  if Fly then Sprite16(16, TY - 26 - Dy, SprLibFly, 1)
-  else Sprite16(16, TY - 26 - Dy, SprLibF, 1);
-end;
-
-procedure TitleCoin(K: integer);    { 0 voll, 1 halb, 2 Kante }
-begin
-  Blit(17, 600, TY);
-  case K of
-    0: Coin(600, TY, 1);
-    1: Sprite16(584, TY - 22, SprCoinN, 1);
-    2: Sprite16(584, TY - 22, SprCoinE, 1);
-  end;
-end;
-
-procedure TitleToad(K: integer);    { 0 weg, 1..3 Kopf immer weiter oben }
-begin
-  Water(400, 112, 32, 22);           { ueber den Ringen, Rest macht Blit }
-  Blit(RingBase + 14, 416, TY);
-  case K of
-    1: Sprite16(400, TY - 27, SprToad1, 1);
-    2: Sprite16(400, TY - 27, SprToad2, 1);
-    3: Sprite16(400, TY - 27, SprToad3, 1);
-  end;
+  gpoint(X, Y);
+  gbput(N, GB_DECK);
 end;
 
 procedure AnimStep;
 const
-  LiftH: array[0..23] of integer =      { Hoehe der Libelle je Schritt }
-    (2, 4, 6, 8, 10, 11, 12, 12, 12, 12, 12, 12,
-     12, 12, 12, 11, 10, 8, 6, 4, 2, 1, 0, 0);
+  LiftK: array[0..23] of integer =      { Bild der Libelle je Schritt }
+    (0, 1, 2, 3, 4, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 5, 4, 3, 2, 1, 0, 7, 8, 8);
   CoinK: array[0..8] of integer = (1, 2, 1, 0, 1, 2, 1, 0, 0);
   ToadK: array[0..10] of integer = (1, 2, 3, 3, 3, 3, 3, 3, 2, 1, 0);
 begin
@@ -1531,14 +1466,13 @@ begin
   begin
     AnimWait := AnimWait - 1;
     if AnimWait > 0 then exit;
-    repeat AnimK := 1 + Random(4) until AnimK <> AnimLast;
+    repeat AnimK := 1 + Random(5) until AnimK <> AnimLast;
     AnimLast := AnimK;
     AnimF := 0;
   end;
   case AnimK of
     1: begin                                     { Libelle hebt ab }
-         if (AnimF and 1) = 0 then
-           TitleLib(LiftH[AnimF shr 1], (AnimF shr 1) < 21);
+         if (AnimF and 1) = 0 then TitlePut(imLift + LiftK[AnimF shr 1], 16, 104);
          if AnimF >= 47 then AnimK := 0;
        end;
     2: begin                                     { Dummvogel blinzelt }
@@ -1548,12 +1482,23 @@ begin
          if AnimF = 19 then begin Sprite16(144, TY - 26, SprBird, 1); AnimK := 0; end;
        end;
     3: begin                                     { Muenze dreht sich }
-         if (AnimF mod 5) = 0 then TitleCoin(CoinK[AnimF div 5]);
+         if (AnimF mod 5) = 0 then TitlePut(imCoin + CoinK[AnimF div 5], 576, 120);
          if AnimF >= 40 then AnimK := 0;
        end;
     4: begin                                     { Kroete schaut heraus }
-         if (AnimF mod 8) = 0 then TitleToad(ToadK[AnimF div 8]);
+         if (AnimF mod 8) = 0 then TitlePut(imToad + ToadK[AnimF div 8], 400, 112);
          if AnimF >= 80 then AnimK := 0;
+       end;
+    5: begin                                     { Dummvogel legt ein Ei }
+         case AnimF of
+           0: TitlePut(imBird + 1, 144, 116);    { hockt sich hin }
+           30: TitlePut(imBird, 144, 116);       { steht auf }
+           40: TitlePut(imBird + 2, 144, 116);   { tritt zur Seite }
+           48: TitlePut(imBird + 3, 144, 116);
+           56: TitlePut(imBird + 4, 144, 116);   { schaut sich das Ei an }
+           120: TitlePut(imBird + 5, 144, 116);  { geht zurueck }
+           128: begin TitlePut(imBird, 144, 116); AnimK := 0; end;
+         end;
        end;
   end;
   AnimF := AnimF + 1;

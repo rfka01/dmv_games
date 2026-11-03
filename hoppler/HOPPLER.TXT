@@ -4,8 +4,7 @@ Version 0.19 (03.11.2026) - Testfassung
 
 Start:   HOPPLER      oder   HOPPLER n   (Start in Level n, 1..25)
 Braucht: DMV mit Farbgrafik, 8088/V20-Karte, MS-DOS, dazu im selben
-         Verzeichnis HOPPLER.DAT (Seerosenbilder) und HOPPLER.SPR
-         (Figuren).
+         Verzeichnis HOPPLER.GBL (Bilder) und HOPPLER.SPR (Figuren).
          Auf anderen Rechnern bricht HOPPLER mit einer Meldung ab
          (Pruefung des GDC an A0h).
 
@@ -38,7 +37,8 @@ Nach dem Spiel: Statistik (Spieldauer, Tiere verteilt/erwischt,
 Ausgaenge der Bluete) und Eintrag in die Bestenliste (10 Plaetze,
 Datei HOPPLER.HI).
 
-Im Titelbild bewegen sich ab und zu die Figuren.
+Im Titelbild bewegen sich ab und zu die Figuren (der Dummvogel legt
+auch einmal ein Ei).
 Titelbild: Leertaste = Start, B = Bestenliste, T = Ton an/aus, ESC = Ende
 Im Spiel:  P = Pause, T = Ton an/aus, ESC = zurueck zum Titel
 
@@ -49,9 +49,9 @@ Versinken, Ertrinken, Gefangen, Dummvogel kommt/geht, Tiere, Bluete,
 Geschafft, Game Over. Beim Sprung gibt es keinen eigenen Ton - der
 Tastenklick der DMV kommt ohnehin.
 
-HOPPLER.DAT enthaelt die vorberechneten Seerosenbilder, HOPPLER.SPR die
-Figuren (erzeugt von tools/mksprites.py). Fehlt eine, bricht HOPPLER mit
-einer Meldung ab.
+HOPPLER.GBL enthaelt die Seerosenbilder und die Bilder der Titel-
+Animation (erzeugt von tools/mkhopgbl.py), HOPPLER.SPR die Figuren
+(tools/mksprites.py). Fehlt eine, bricht HOPPLER mit einer Meldung ab.
 
 Neu bauen: Turbo Pascal 3.01A, HOPPLER.PAS als Hauptdatei, Compiler-
 Option C (Com-file), "mAximum free dynamic memory" auf 0400 setzen
@@ -59,13 +59,14 @@ Option C (Com-file), "mAximum free dynamic memory" auf 0400 setzen
 Version 0.19 kommen Grafik, Text, Figuren und Ton aus der gemeinsamen
 Bibliothek DMVGRAF (rfka01/dmv_goodies, dmvgraf/pascal): DMVHWD.INC,
 DMVFONT.INC, DMVGRAF.INC, DMVSPR.INC und DMVBKL.INC muessen im selben
-Verzeichnis liegen, dazu SPRITES.INC (Nummern der Figuren).
+Verzeichnis liegen, dazu SPRITES.INC und GBLNUM.INC (Nummern der Figuren
+und Bilder).
 
 HOPPLER - loosely based on Perestroika/Toppler, for the NCR DMV
 The dragonfly hops across shrinking lily pads to reach the coin while
 the big dumb bird tries to catch it. Keys 8/2/4/6, W/S/A/D or cursor keys, T toggles sound, 25 levels,
 growing grid and bonus frequencies as in the 1990 original.
-Needs a colour DMV, HOPPLER.DAT and HOPPLER.SPR. Graphics, text,
+Needs a colour DMV, HOPPLER.GBL and HOPPLER.SPR. Graphics, text,
 sprites and sound come from the shared DMVGRAF library since 0.19.
 
 Code: Claude (Anthropic), Idee und Prompts / idea and prompts: rfka01
