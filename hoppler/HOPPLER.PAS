@@ -1292,13 +1292,14 @@ begin
   Water(0, 104, 640, 72);
   for I := 0 to 9 do
     if I = 6 then Blit(RingBase + 14, 32 + I * 64, Y)
+    else if I = 9 then Blit(TS[I], 600, Y)   { ganz auf dem Schirm: schneller Weg }
     else Blit(TS[I], 32 + I * 64, Y);
   LibDir := 0;
   Libelle(32, Y);
   BirdT[1] := 99; BirdD[1] := 0;
   Vogel(160, Y, 1);
   Level := 0;
-  Coin(608, Y, 1);
+  Coin(600, Y, 1);
   Txt(24, 188, 'Im Original wetteiferten Demokrat und BÅrokrat um Geld und Ressourcen.', cYellow, 0);
   Txt(24, 206, 'Hier treffen sich Cartoonfiguren am Teich: Die Drachenlibelle hÅpft', cYellow, 0);
   Txt(24, 224, 'Åber kleiner werdende SeerosenblÑtter. Der gro·e Dummvogel will sie', cYellow, 0);
@@ -1499,11 +1500,11 @@ end;
 
 procedure TitleCoin(K: integer);    { 0 voll, 1 halb, 2 Kante }
 begin
-  Blit(17, 608, TY);
+  Blit(17, 600, TY);
   case K of
-    0: Coin(608, TY, 1);
-    1: Sprite16(592, TY - 22, SprCoinN, 1);
-    2: Sprite16(592, TY - 22, SprCoinE, 1);
+    0: Coin(600, TY, 1);
+    1: Sprite16(584, TY - 22, SprCoinN, 1);
+    2: Sprite16(584, TY - 22, SprCoinE, 1);
   end;
 end;
 
