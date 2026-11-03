@@ -1,28 +1,186 @@
 program Hoppler;
 
 { HOPPLER - frei nach Perestroika/Toppler fuer die NCR Decision Mate V
-  Turbo Pascal 3.01A, Farbgrafik 640x400 - ohne TurboGraf:
-  Grafik, Text und Ton kommen aus DMVGFX.INC, die Schrift aus FONT.INC,
-  die Figuren aus SPRITES.INC (alle drei im selben Verzeichnis).
+  Turbo Pascal 3.01A, Farbgrafik 640x400.
+  Grafik, Text, Figuren und Ton kommen aus DMVGRAF (rfka01/dmv_goodies,
+  dmvgraf/pascal: DMVHWD.INC, DMVFONT.INC, DMVGRAF.INC, DMVSPR.INC,
+  DMVBKL.INC), die Nummern der Figuren aus SPRITES.INC.
   Code: Claude (Anthropic), Prompts: rfka01 - 2026
   Lizenz: MIT
 
-  Beim ersten Start werden die Seerosenbilder berechnet und in HOPPLER.DAT
-  gespeichert; danach nur noch geladen.
+  Laufzeit: HOPPLER.DAT (Seerosenbilder) und HOPPLER.SPR (Figuren) im
+  aktuellen Verzeichnis. Uebersetzen mit "mAximum free dynamic memory"
+  0400, damit DOS Speicher fuer die Bilder behaelt.
   Die Quelle ist in Codepage 437 geschrieben (Umlaute in den Texten).
 
   Haeufigkeiten und Punkte der Tiere folgen dem Original (PERESTR.EXE,
   Locis 1990), aus dem Maschinencode abgelesen. }
 
 {$C-}
-{$I FONT.INC}
-{$I DMVGFX.INC}
+{$I DMVHWD.INC}
+{$I DMVFONT.INC}
+{$I DMVGRAF.INC}
+const SPMAX = 20;                 { Figuren 0..20 }
+{$I DMVSPR.INC}
+const BKMAX = 86;                 { Bilder: 43 Seerosen/Ringe in 2 Lagen }
+{$I DMVBKL.INC}
+
+{ ---------------- Anschluss an DMVGRAF ----------------
+  Die alten Namen aus HOPPLERs DMVGFX.INC (bis V0.18), umgesetzt auf
+  DMVGRAF. Koordinaten wie bisher: y von oben (gorig 1). }
 
 type
-  ImgA  = array[0..4095] of integer;  { (Ebene*Zeilen+Zeile)*Worte+Wort }
-  ImgP  = ^ImgA;
+  Spr16 = array[0..2, 0..1, 0..15] of integer;  { Ebene, SET/RESET, Zeile }
+  Str80 = string[80];
+
+const
+  cBlack = 0; cBlue = 1; cGreen = 2; cCyan = 3; cRed = 4;
+  cMagenta = 5; cYellow = 6; cWhite = 7;
+  { HOPPLERs Dithermuster liegen in den DMVGRAF-Mustern 12..15 }
+  patCheck = 12; patWave = 13; pat25 = 14; pat12 = 15;
+  HopPat: array[0..3, 0..3] of byte = (($55, $AA, $55, $AA),
+                                       ($FF, $EE, $55, $BB),
+                                       ($11, $00, $44, $00),
+                                       ($01, $00, $10, $00));
 
 {$I SPRITES.INC}
+
+var
+  Frames   : integer;              { Bildwechsel seit Start }
+  SoundOn  : boolean;
+  SprData  : array[0..20] of Spr16;
+
+procedure Box(X, Y, W, H, Col: integer);      { X/Y = linke obere Ecke }
+begin
+  if (W <= 0) or (H <= 0) then exit;
+  gpatt(0); gcolor(Col);
+  gpoint(X, Y); gbox(W, H, 0);
+end;
+
+{ gedithert: Farbe CA auf den Musterbits, CB sonst; Muster am Schirm fest }
+procedure DBox(X, Y, W, H, CA, CB, Pat: integer);
+begin
+  if (W <= 0) or (H <= 0) then exit;
+  gpatt(Pat); gcolor(CA); gbcol(CB);
+  gpoint(X, Y); gbox(W, H, 0);
+  gbcol(-1);
+end;
+
+procedure Sprite16(X, Y, N, Z: integer);      { Figur N, Z = 0: 16x16, 1: 32x32 }
+begin
+  gspr(N, X, Y, Z, GB_DURCH);
+end;
+
+procedure Txt(X, Y: integer; S: Str80; Col, Z: integer);
+begin
+  if Z <> 0 then gzoom(Z);
+  gcolor(Col);
+  gpoint(X, Y); gtext(S, 0);
+  if Z <> 0 then gzoom(0);
+end;
+
+procedure TxtC(Y: integer; S: Str80; Col, Z: integer);   { zentriert }
+begin
+  Txt(320 - Length(S) * 4 * (Z + 1), Y, S, Col, Z);
+end;
+
+procedure TxtB(X, Y: integer; S: Str80; Col: integer);   { fett }
+begin
+  Txt(X, Y, S, Col, 0);
+  Txt(X + 1, Y, S, Col, 0);
+end;
+
+procedure WaitFrame;                  { ein Bildwechsel; schickt dabei Toene }
+begin
+  gwait(1);
+  Frames := Frames + 1;
+end;
+
+procedure Wait(N: integer);
+var I: integer;
+begin
+  for I := 1 to N do WaitFrame;
+end;
+
+procedure Tone(N, L: integer);        { in die Warteschlange }
+begin
+  if not SoundOn then exit;
+  if L < 1 then L := 1;
+  tonq(N, L);
+end;
+
+procedure SndClear;
+begin
+  tonclr;
+end;
+
+procedure SndIdle;                    { warten, bis alles gesendet ist }
+var K: integer;
+begin
+  K := 0;
+  while (not tonidle) and (K < 300) do begin WaitFrame; K := K + 1; end;
+end;
+
+function Num(N, W: integer): Str80;   { mit fuehrenden Nullen }
+var S: Str80;
+begin
+  Str(N, S);
+  while Length(S) < W do S := '0' + S;
+  Num := S;
+end;
+
+function NumR(X: real; W: integer): Str80;   { Punkte, fuehrende Nullen }
+var S: Str80;
+    I: integer;
+begin
+  Str(X:W:0, S);
+  for I := 1 to Length(S) do if S[I] = ' ' then S[I] := '0';
+  NumR := S;
+end;
+
+function Max(A, B: integer): integer;
+begin
+  if A > B then Max := A else Max := B;
+end;
+
+function Min(A, B: integer): integer;
+begin
+  if A < B then Min := A else Min := B;
+end;
+
+{ Grafik ein, Muster und Figuren anmelden. Figuren aus HOPPLER.SPR
+  (21 x 96 Worte wie Spr16, erzeugt von tools/mksprites.py). }
+procedure GfxInit;
+var F: file;
+    P: array[0..7] of byte;
+    I, J: integer;
+begin
+  Assign(F, 'HOPPLER.SPR');
+  {$I-} Reset(F); {$I+}
+  if IOResult <> 0 then
+  begin
+    Writeln('HOPPLER.SPR fehlt.');
+    Halt;
+  end;
+  BlockRead(F, SprData, 32);
+  Close(F);
+  ginit;
+  gorig(1);
+  gmode(3);                         { in der Farbe zeichnen, Rest bleibt }
+  for I := 0 to 3 do
+  begin
+    for J := 0 to 7 do P[J] := HopPat[I, J and 3];
+    gpdef(12 + I, P);
+  end;
+  for I := 0 to NSpr - 1 do gsprset(I, 16, 16, SprData[I]);
+end;
+
+procedure GfxExit;
+begin
+  SndIdle;
+  gexit;
+end;
+
 
 const
   MaxC    = 14;          { groesstes Raster 14 x 8 }
@@ -32,7 +190,7 @@ const
   RingBase = 21;         { Bild 21+r: Ringe mit Halbachse r }
   NImg    = 42;
   LastLevel = 25;
-  Version = 'V0.18';
+  Version = 'V0.19';
   MaxBirds  = 2;
 
   { Raster je Level 1..8 (ab 8 gleich), wie im Original }
@@ -47,8 +205,6 @@ const
   { Tiere auf den Seerosen }
   iNone = 0; iKaefer = 1; iBiene = 2; iKroete = 3; iBluete = 4;
 
-  UpTo: array[0..15] of integer = ($0001, $0003, $0007, $000F, $001F, $003F,
-    $007F, $00FF, $01FF, $03FF, $07FF, $0FFF, $1FFF, $3FFF, $7FFF, $FFFF);
 
 type
   DosRegs = record AX, BX, CX, DX, BP, SI, DI, DS, ES, Flags: integer; end;
@@ -67,7 +223,6 @@ type
 
 var
   Cell     : array[0..13, 0..7] of CellRec;
-  Img      : array[0..NImg, 0..1] of ImgP;
   ImW      : array[0..NImg, 0..1] of integer;   { Worte je Zeile }
   ImA      : array[0..NImg, 0..1] of integer;   { Worte links der Mitte }
   ImRec    : array[0..NImg, 0..1] of integer;   { 128-Byte-Saetze }
@@ -119,7 +274,7 @@ end;
 procedure SndBlub;                     { Seerose versinkt: Blubbern }
 var I: integer;
 begin
-  if (SqHead <> SqTail) or (SqPh <> 0) or (BlubT > 0) then exit;
+  if (not tonidle) or (BlubT > 0) then exit;
   BlubT := 40;
   for I := 1 to 3 do Tone(30 + Random(13), 1);
 end;
@@ -221,54 +376,19 @@ begin
 end;
 
 { Bild N mit Mittelpunkt CX (durch 8 teilbar), CY (durch 4 teilbar).
-  Je Ebene: erst innerhalb der Maske loeschen, dann den Inhalt setzen -
-  ausserhalb der Ellipse bleibt der Bildschirm unberuehrt. }
+  Jedes Bild liegt in zwei Fassungen vor (Mitte x mod 16 = 0 oder 8), so
+  beginnt es immer auf einer Wortgrenze und gbput nimmt den schnellen Weg.
+  Durchsichtig: ausserhalb der Ellipse bleibt der Schirm unberuehrt. }
 procedure Blit(N, CX, CY: integer);
-var P, V, S, R, W, X0, E: integer;
+var V: integer;
 begin
   V := (CX shr 3) and 1;
-  S := ImS(N);
-  R := 2 * S + 5;
-  W := ImW[N, V];
-  X0 := (CX shr 4) - ImA[N, V];
-  Cmd($4A); Par($FF); Par($FF);      { MASK ganz }
-  Cmd($4C); Par($02);                { FIGS: Richtung rechts }
-  for P := 0 to 2 do
-  begin
-    E := (CY - S - 2) * 40 + X0 + PB[P];
-    BlitAsm(Img[N, V]^[0], E, R, W, 0, $22);
-    BlitAsm(Img[N, V]^[(P + 1) * R * W], E, R, W, 0, $23);
-  end;
-  CurOK := false;
+  gpoint(((CX shr 4) - ImA[N, V]) * 16, CY - ImS(N) - 2);
+  gbput(N * 2 + V, GB_DURCH);
 end;
 
-function SpanW(K, A, B: integer): integer;
-var L, H: integer;
-begin
-  L := A - 16 * K; H := B - 16 * K;
-  if L < 0 then L := 0;
-  if H > 15 then H := 15;
-  if L > H then SpanW := 0
-  else if L = 0 then SpanW := UpTo[H]
-  else SpanW := UpTo[H] and not UpTo[L - 1];
-end;
-
-function HalfW(Y, RX, RY: integer): integer;  { -1 = Zeile ausserhalb }
-var T: real;
-begin
-  if (RX <= 0) or (RY <= 0) or (Abs(Y) > RY) then HalfW := -1
-  else
-  begin
-    T := 1.0 - Sqr(Y / (RY + 0.5));
-    if T < 0 then T := 0;
-    HalfW := Round(RX * Sqrt(T));
-  end;
-end;
-
-{ Groessen der Bilder festlegen und Speicher holen.
-  Maske = Ellipse eine Stufe groesser (deckt die vorige Seerose ab). }
-procedure AllocImages;
-var N, V, S, L, AL, AR, Bytes: integer;
+procedure ImgSizes;                       { Breite (Worte), Lage, Saetze }
+var N, V, S, L, AL, AR: integer;
 begin
   for N := 0 to NImg do
   begin
@@ -281,90 +401,25 @@ begin
       if AR < 0 then AR := 0;
       ImA[N, V] := AL;
       ImW[N, V] := AL + 1 + AR;
-      Bytes := 4 * (2 * S + 5) * ImW[N, V] * 2;
-      ImRec[N, V] := (Bytes + 127) div 128;
-      GetMem(Img[N, V], ImRec[N, V] * 128);
+      ImRec[N, V] := (4 * (2 * S + 5) * ImW[N, V] * 2 + 127) div 128;
     end;
   end;
 end;
 
-function Span2(K, C, H: integer): integer;  { Zeile mit halber Breite H }
-begin
-  if H >= 0 then Span2 := SpanW(K, C - H, C + H) else Span2 := 0;
-end;
-
-procedure MakeImages;
-var N, V, S, Y, K, DY, RX, R, W, C, Wv, Ck, Mo, Mi, Rim, Ol, G, B, Rd,
-    HO, HI, HO2, HI2, HM, Mk: integer;
-begin
-  for N := 0 to NImg do
-  begin
-    S := ImS(N); RX := RXof(S); R := 2 * S + 5;
-    for V := 0 to 1 do
-    begin
-      W := ImW[N, V];
-      C := 16 * ImA[N, V] + 8 * V;        { Mittelpunkt im Bild }
-      for Y := 0 to R - 1 do
-      begin
-        DY := Y - S - 2;
-        if N <= MaxS then HM := HalfW(DY, RXof(S + 1) + 1, S + 1)
-        else HM := HalfW(DY, RX + 1, S);
-        Wv := PatRow[patWave, DY and 3]; Wv := Wv or (Wv shl 8);
-        Ck := PatRow[patCheck, DY and 3]; Ck := Ck or (Ck shl 8);
-        if N <= MaxS then
-        begin                              { Seerose, oliv mit Cyan-Rand }
-          HO := HalfW(DY, RX, S);
-          if (S > 2) and (HO >= 0) then HI := HalfW(DY, RX - 2, S - 1)
-          else HI := -1;
-        end
-        else
-        begin                              { zwei Ringe }
-          HO := HalfW(DY, RX, S);
-          HI := HalfW(DY, RX - 2, S - 1);
-          if S div 2 >= 3 then
-          begin
-            HO2 := HalfW(DY, RXof(S div 2), S div 2);
-            HI2 := HalfW(DY, RXof(S div 2) - 2, S div 2 - 1);
-          end
-          else begin HO2 := -1; HI2 := -1; end;
-        end;
-        for K := 0 to W - 1 do
-        begin
-          if N <= MaxS then
-          begin
-            Mo := Span2(K, C, HO);
-            Mi := Span2(K, C, HI);
-            Rim := Mo and not Mi;
-            Ol := Mi and Ck;
-            G := Rim or Ol; Rd := Ol; B := Rim or (Wv and not Mo);
-          end
-          else
-          begin
-            Rim := (Span2(K, C, HO) and not Span2(K, C, HI)) or
-                   (Span2(K, C, HO2) and not Span2(K, C, HI2));
-            G := Rim; Rd := 0; B := Rim or Wv;
-          end;
-          Mk := Span2(K, C, HM);
-          Img[N, V]^[(0 * R + Y) * W + K] := Mk;
-          Img[N, V]^[(1 * R + Y) * W + K] := G and Mk;
-          Img[N, V]^[(2 * R + Y) * W + K] := Rd and Mk;
-          Img[N, V]^[(3 * R + Y) * W + K] := B and Mk;
-        end;
-      end;
-    end;
-  end;
-end;
-
-{ Bilder aus HOPPLER.DAT laden oder berechnen und speichern }
+{ HOPPLER.DAT (Kennung "HOPPLER 0.6", wie bis V0.18): je Bild und Fassung
+  Worte [Ebene Maske/G/R/B][Zeile][Wort]. Fuer DMVGRAF umgestellt auf
+  Format 4: je Zeile Maske, G, R, B, Bit 0 links. }
 procedure LoadImages;
 const
   Sig: string[12] = 'HOPPLER 0.6';
 var F: file;
     Hdr: array[0..127] of byte;
-    N, V, I, Total: integer;
+    Raw: array[0..1151] of integer;       { groesstes Bild: 4 x 47 x 6 Worte }
+    Fm4: array[0..2303] of byte;
+    N, V, I, R, W, Y, P, K, Total: integer;
     Ok: boolean;
 begin
-  AllocImages;
+  ImgSizes;
   Total := 1;
   for N := 0 to NImg do for V := 0 to 1 do Total := Total + ImRec[N, V];
   Ok := false;
@@ -380,28 +435,29 @@ begin
         if Hdr[I - 1] <> Ord(Sig[I]) then Ok := false;
       if Ok then
         for N := 0 to NImg do
-          for V := 0 to 1 do BlockRead(F, Img[N, V]^, ImRec[N, V]);
+          for V := 0 to 1 do
+          begin
+            BlockRead(F, Raw, ImRec[N, V]);
+            R := 2 * ImS(N) + 5; W := ImW[N, V];
+            for Y := 0 to R - 1 do
+              for P := 0 to 3 do
+                for K := 0 to W - 1 do
+                begin
+                  I := (Y * 4 + P) * W * 2 + K * 2;
+                  Fm4[I] := Lo(Raw[(P * R + Y) * W + K]);
+                  Fm4[I + 1] := Hi(Raw[(P * R + Y) * W + K]);
+                end;
+            gbdef(N * 2 + V, W * 16, R, GB_EBN, Fm4);
+            if gerr <> 0 then Ok := false;
+          end;
     end;
     Close(F);
   end;
   if not Ok then
   begin
-    TxtC(184, 'Erster Start: Die Seerosen werden berechnet.', cWhite, 0);
-    TxtC(204, 'Das dauert einmalig etwas ...', cWhite, 0);
-    MakeImages;
-    FillChar(Hdr, 128, 0);
-    for I := 1 to Length(Sig) do Hdr[I - 1] := Ord(Sig[I]);
-    {$I-}
-    Rewrite(F);
-    if IOResult = 0 then
-    begin
-      BlockWrite(F, Hdr, 1);
-      for N := 0 to NImg do
-        for V := 0 to 1 do BlockWrite(F, Img[N, V]^, ImRec[N, V]);
-      Close(F);
-    end;
-    I := IOResult;
-    {$I+}
+    GfxExit;
+    Writeln('HOPPLER.DAT fehlt oder ist beschaedigt (Fehler ', gerr, ').');
+    Halt;
   end;
 end;
 
@@ -1435,7 +1491,7 @@ var
 
 procedure TitleLib(Dy: integer; Fly: boolean);
 begin
-  Water(16, 104, 32, 22);            { nur ueber der Seerose, Rest macht Blit }
+  Water(16, 104, 32, 24);            { nur ueber der Seerose, Rest macht Blit }
   Blit(17, 32, TY);                  { kleiner, ragt nicht ueber den Rand }
   if Fly then Sprite16(16, TY - 26 - Dy, SprLibFly, 1)
   else Sprite16(16, TY - 26 - Dy, SprLibF, 1);
@@ -1522,15 +1578,15 @@ begin
 end;
 
 begin
-  if not IsDMV then
+  gstart;
+  if not gdmv then
   begin
     Writeln('HOPPLER l„uft nur auf einer NCR Decision Mate V mit Farbgrafik.');
     Halt;
   end;
   GfxInit;
-  CurOK := false;
   Frames := 0;
-  SqHead := 0; SqTail := 0; SqPh := 0; BlubT := 0;
+  BlubT := 0;
   SoundOn := true;
   Best := 0;
   LibDir := 0;

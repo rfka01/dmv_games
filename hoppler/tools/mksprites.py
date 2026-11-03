@@ -101,20 +101,33 @@ def pas_arr(name, rows):
         pl.append("    (" + ",\n     ".join(ops) + ")")
     lines.append(",\n".join(pl) + ");")
     return "\n".join(lines)
+SPRS = (("SprLibF", LIB_F), ("SprLibB", LIB_B),
+        ("SprLibL", LIB_L), ("SprLibR", LIB_R),
+        ("SprBird", DUMMVOGEL), ("SprBirdC", VOGEL_GEB),
+        ("SprBirdL", VOGEL_L), ("SprBirdR", VOGEL_R),
+        ("SprKaefer", KAEFER), ("SprKroete", KROETE),
+        ("SprBiene", BIENE), ("SprBluete", BLUETE),
+        ("SprCoin", COIN), ("SprSplash", SPLASH),
+        ("SprLibFly", LIB_FLY), ("SprBirdZu", VOGEL_ZU),
+        ("SprCoinN", COIN_N), ("SprCoinE", COIN_E),
+        ("SprToad1", KROETE_K1), ("SprToad2", KROETE_K2),
+        ("SprToad3", KROETE_K3))
+# Ab V0.19 (DMVGRAF): SPRITES.INC nur noch Nummern, die Figuren selbst in
+# HOPPLER.SPR (je Figur 96 Worte: Ebene G/R/B, SET/RESET, 16 Zeilen;
+# Aufbau wie Spr16 und gsprset), aufgefuellt auf 128-Byte-Saetze.
+import struct
 out = ["{ SPRITES.INC - erzeugt von tools/mksprites.py - nicht von Hand aendern }",
-       "{ je Ebene (0=gruen 1=rot 2=blau): SET-Maske, RESET-Maske; Bit 0 = links }",
+       "{ Nummern der Figuren fuer gspr; die Figuren stehen in HOPPLER.SPR }",
        "const"]
-for nm, rows in (("SprLibF", LIB_F), ("SprLibB", LIB_B),
-                 ("SprLibL", LIB_L), ("SprLibR", LIB_R),
-                 ("SprBird", DUMMVOGEL), ("SprBirdC", VOGEL_GEB),
-                 ("SprBirdL", VOGEL_L), ("SprBirdR", VOGEL_R),
-                 ("SprKaefer", KAEFER), ("SprKroete", KROETE),
-                 ("SprBiene", BIENE), ("SprBluete", BLUETE),
-                 ("SprCoin", COIN), ("SprSplash", SPLASH),
-                 ("SprLibFly", LIB_FLY), ("SprBirdZu", VOGEL_ZU),
-                 ("SprCoinN", COIN_N), ("SprCoinE", COIN_E),
-                 ("SprToad1", KROETE_K1), ("SprToad2", KROETE_K2),
-                 ("SprToad3", KROETE_K3)):
-    out.append(pas_arr(nm, [r.replace(' ', '.') for r in rows]))
-open("SPRITES.INC","w",newline="\r\n").write("\n".join(out)+"\n")
-print("ok")
+data = b""
+for k, (nm, rows) in enumerate(SPRS):
+    out.append(f"  {nm} = {k};")
+    m = masks([r.replace(' ', '.') for r in rows])
+    for p in range(3):
+        for o in range(2):
+            data += struct.pack("<16H", *m[p][o])
+out.append(f"  NSpr = {len(SPRS)};")
+data += b"\0" * (-len(data) % 128)
+open("SPRITES.INC", "w", newline="\r\n").write("\n".join(out) + "\n")
+open("HOPPLER.SPR", "wb").write(data)
+print("ok", len(SPRS), len(data))
