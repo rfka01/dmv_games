@@ -191,7 +191,7 @@ const
   RingBase = 21;         { Bild 21+r: Ringe mit Halbachse r }
   NImg    = 42;
   LastLevel = 25;
-  Version = 'V0.19';
+  Version = 'V0.20';
   MaxBirds  = 2;
 
   { Raster je Level 1..8 (ab 8 gleich), wie im Original }
@@ -1537,6 +1537,7 @@ begin
   Best := 0;
   LibDir := 0;
   Box(0, 0, 640, 400, cBlack);
+  TxtC(192, 'Hopping to it ...', cWhite, 0);   { Laden dauert etwas }
   LoadImages;
   LoadHi;
   Randomize;

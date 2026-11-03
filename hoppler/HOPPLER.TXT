@@ -1,6 +1,6 @@
 HOPPLER - frei nach Perestroika/Toppler, fuer die NCR Decision Mate V
 ====================================================================
-Version 0.19 (03.11.2026) - Testfassung
+Version 0.20 (03.11.2026) - Testfassung
 
 Start:   HOPPLER      oder   HOPPLER n   (Start in Level n, 1..25)
 Braucht: DMV mit Farbgrafik, 8088/V20-Karte, MS-DOS, dazu im selben
