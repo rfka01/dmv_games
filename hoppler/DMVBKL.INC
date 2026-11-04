@@ -2,8 +2,8 @@
   CP/M-80, wo die ganze Bibliothek nicht in 64 KB passt). Nach
   DMVGRAF.INC einbinden, statt DMVBILD.INC.
 
-  Enthalten: gbdef, gbload, gbput, gbfree, gbinfo mit den Formaten 1, 2,
-  4 und 5. Wie viele Bilder es gibt, legt das Programm vorher fest:
+  Enthalten: gbdef, gbload, gbldv (Bildsammlung, Formate 1, 2, 4),
+  gbput, gbfree, gbinfo mit den Formaten 1, 2, 4 und 5 (5 nur gbdef). Wie viele Bilder es gibt, legt das Programm vorher fest:
   const BKMAX = 16;  (Bilder 0 bis BKMAX - 1). Nicht enthalten (Fehler GE_FORM bzw. GE_LAGE): Format 3
   (gbmap), gbget, glayer/glput/gldraw, gzeig.
 
@@ -25,6 +25,7 @@ var
   rraw: array[0..319] of byte;
   brest: integer;
   bzr: array[0..319] of byte;
+  gbanz: integer;                   { gbldv: geladene Bilder }
 
 
 
@@ -298,13 +299,15 @@ begin
   gerr := bdef(nr, b, h, fmt);
 end;
 
+{ Bilder aus einer Datei. b = 0: Bildsammlung (gbldv), jedes Bild mit
+  eigenem Kopf: Breite, Hoehe (je 2 Byte), Format, 0; dann die Daten wie
+  bei gbdef. anz <= 0: bis zum Ende der Datei. gbanz: geladene Bilder. }
 procedure gbload(nr0: integer; name: GStr; b, h, anz, fmt: integer; kopf: real);
 var i, r, n: integer;
 begin
+  gbanz := 0;
   gerr := GE_HW;
   if qstart <> 0 then exit;
-  gerr := GE_FORM;
-  if fmt = GB_SETR then exit;
   gerr := GE_DATEI;
   if ghopen(name) <> 0 then exit;
   rdat := true;
@@ -316,13 +319,29 @@ begin
     kopf := kopf - n;
   end;
   i := 0;
-  while (i < anz) and (r = 0) do begin
-    r := bdef(nr0 + i, b, h, fmt);
+  while (r = 0) and ((i < anz) or ((anz <= 0) and (b = 0))) do begin
+    n := b;
+    if b = 0 then begin                     { Kopf des Bildes }
+      n := 0;
+      if not brd(bzr, 6) then begin
+        n := bzr[0] + 256 * bzr[1]; h := bzr[2] + 256 * bzr[3]; fmt := bzr[4];
+      end;
+      if (n < 1) or (n > 640) then r := -1; { Ende (auch ^Z am Satzende) }
+    end;
+    if fmt = GB_SETR then r := GE_FORM;
+    if r = 0 then r := bdef(nr0 + i, n, h, fmt);
+    if r = 0 then gbanz := gbanz + 1;
     i := i + 1;
   end;
+  if r = -1 then if anz > 0 then r := GE_KURZ else r := 0;
   ghclos;
   rdat := false;
   gerr := r;
+end;
+
+procedure gbldv(nr0: integer; name: GStr; anz: integer; kopf: real);
+begin
+  gbload(nr0, name, 0, 0, anz, 0, kopf);
 end;
 
 procedure gbinfo(nr: integer; var r: GBInfoArr);
