@@ -1,4 +1,4 @@
-MAHJONGG 0.10 - Mahjongg-Solitaer fuer die NCR Decision Mate V
+MAHJONGG 0.12 - Mahjongg-Solitaer fuer die NCR Decision Mate V
 ==============================================================
 
 Fuer MS-DOS ab 2.11 auf der DMV mit 8088/V20-Karte (K230/K231/K235),

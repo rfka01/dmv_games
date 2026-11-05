@@ -6,7 +6,7 @@ Games for the NCR Decision Mate V (DMV) with colour graphics (µPD7220) under MS
 | Spiel / Game | Verzeichnis / Directory | Diskette / Disk image |
 |---|---|---|
 | **Hoppler** – frei nach Perestroika/Toppler / loosely based on Perestroika/Toppler | [`hoppler/`](hoppler/) | [`images/HOPPLER-V0.18.IMG`](images/HOPPLER-V0.18.IMG) |
-| **Mahjongg** – Solitär mit Maus, CP/M-8000 (K238) / solitaire with mouse, CP/M-8000 (K238) | [`mahjongg/`](mahjongg/) | [`images/MAHJONGG-8000-V0.10.IMG`](images/MAHJONGG-8000-V0.10.IMG) (320 KB, CP/M-8000-Datendiskette / data disk) |
+| **Mahjongg** – Solitär mit Maus, CP/M-8000 (K238) / solitaire with mouse, CP/M-8000 (K238) | [`mahjongg/`](mahjongg/) | [`images/MAHJONGG-8000-V0.12.IMG`](images/MAHJONGG-8000-V0.12.IMG), [`-68K-`](images/MAHJONGG-68K-V0.12.IMG) (320 KB, CP/M-Datendisketten / data disks), [`-DOS-`](images/MAHJONGG-DOS-V0.12.IMG) (360 KB) |
 
 [![Hoppler](hoppler/screenshots/titel.png)](hoppler/)
 

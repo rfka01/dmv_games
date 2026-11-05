@@ -940,7 +940,7 @@ char **argv;
                 else
                         datei = argv[i];
         }
-        gputs("DMV-Mahjongg 0.10 - lade Steine aus ");
+        gputs("DMV-Mahjongg 0.12 - lade Steine aus ");
         gputs(datei);
         gputs(" ...\n");
         if (ginfo(&f, &m, &sy, &cv)) {
