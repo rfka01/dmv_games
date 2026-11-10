@@ -53,7 +53,7 @@ static const BYTE bayer[4][4] = { {0,8,2,10}, {12,4,14,6}, {3,11,1,9}, {15,7,13,
 /* Zaehler 0..15 -> Helligkeit 0..48 (etwa logarithmisch) */
 static const BYTE hell[16] = { 0, 14, 21, 26, 30, 33, 36, 38, 40, 42, 43, 44, 45, 46, 47, 48 };
 
-static int rnd(int n) { seed = seed * 1103515245UL + 12345UL; return (int)((seed >> 16) % (unsigned)n); }
+static int rnd(int n) { seed = seed * 1103515245UL + 12345UL; return n > 0 ? (int)((seed >> 16) % (unsigned)n) : 0; }
 
 /* sin, cos eines Winkels in Q12-Bogenmass, Ergebnis Q12; linear zwischen
    den Tafelwerten (sonst laeuft die Bahn auf dem Raster in Kreislaeufe) */
@@ -194,6 +194,10 @@ static int doFrame(HDC hdc)
     RECT upd;
     int n = tempo, k, schritte;
     ScrollDC(hdc, 0, -n, NULL, NULL, NULL, &upd);
+    /* Windows laesst den frei gewordenen Streifen stehen (sonst zieht
+       jeder Punkt der untersten Zeile einen senkrechten Strich nach oben) */
+    SetRect(&upd, 0, H - n, W, H);
+    FillRect(hdc, &upd, GetStockObject(BLACK_BRUSH));
     if (zeile < PH) {                        /* Gebilde laeuft ein */
         if (zeile + n > PH) n = PH - zeile;
         for (k = 0; k < n; k++)              /* DIB: unterste Zeile zuerst */
@@ -231,18 +235,43 @@ static int doClose(void)
     return NOERROR;
 }
 
+/* Verteiler. After Dark schickt auch MODULESELECTED (Auswahl im
+   Kontrollfeld): dann gehoeren das eigene Modul-Handle und die Nummern
+   der Einstellungen in AD_MODULE, sonst liest After Dark die Einstellungen
+   aus dem zuletzt gewaehlten Modul. Auf schnellen Rechnern (ab 80286 oder
+   Windows im Standard-/Erweiterten Modus) hoechstens ein Bild je TAKT ms;
+   DMVBD meldet 8086 im Real Mode und laeuft ungebremst. */
+#define TAKT 50
 int FAR PASCAL Module(int msg, HDC hdc, HANDLE hSystem)
 {
+    static DWORD tlast;
+    static int takt;
     LPSYSTEM sys = (LPSYSTEM)GlobalLock(hSystem);
-    LPMODULE mod = (LPMODULE)GlobalLock(sys->hModuleInfo);
-    int r = NOERROR;
-    switch (msg) {
-    case INITIALIZE: r = doInit(sys, mod); break;
-    case BLANK:      r = doBlank(hdc); break;
-    case DRAWFRAME:  r = doFrame(hdc); break;
-    case CLOSE:      r = doClose(); break;
+    LPMODULE mod;
+    int r = NOERROR, i;
+    if (!sys) return NOERROR;
+    if ((mod = (LPMODULE)GlobalLock(sys->hModuleInfo)) != NULL) {
+        switch (msg) {
+        case INITIALIZE:
+            takt = sys->iProcessorType >= 2 || sys->iOperatingMode != 0;
+            tlast = GetCurrentTime();
+            r = doInit(sys, mod); break;
+        case BLANK:      r = doBlank(hdc); break;
+        case DRAWFRAME:
+            if (takt) {
+                DWORD t = GetCurrentTime();
+                if (t - tlast < TAKT) break;
+                tlast = t;
+            }
+            r = doFrame(hdc); break;
+        case CLOSE:      r = doClose(); break;
+        case MODULESELECTED:
+            mod->hModule = hInst;
+            for (i = 0; i < 4; i++) mod->iControlID[i] = i + 1;
+            break;
+        }
+        GlobalUnlock(sys->hModuleInfo);
     }
-    GlobalUnlock(sys->hModuleInfo);
     GlobalUnlock(hSystem);
     return r;
 }

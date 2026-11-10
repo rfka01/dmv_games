@@ -37,6 +37,7 @@ typedef AD_MODULE FAR *LPMODULE;
 #define BLANK        1
 #define DRAWFRAME    2
 #define CLOSE        3
+#define MODULESELECTED 5
 
 #define NOERROR      0
 #define MEM_ERROR    1

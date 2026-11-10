@@ -10,6 +10,9 @@ Aufruf:  DMVBD [modul] [/M | /C] [/N] [/R:n] [/?] [/1=w /2=w /3=w /4=w]
        los, sonst beim ersten. /1../4 gelten nur fuer das genannte Modul
   /M   Monochrom erzwingen, /C Farbe erzwingen
        (sonst entscheidet der Kennbuchstabe im ROM)
+  /T   Aufruf durch DMVBDTSR: ohne Meldungen, Textschirm danach leer;
+       ohne modul alle Module reihum (wie /R:2); Module ohne
+       Verzeichnis werden neben DMVBD.EXE gesucht
   /N   ohne Startschirm (sonst DMVBD.PIC aus dem Verzeichnis von
        DMVBD.EXE; eine Taste oder 8 Sekunden: weiter)
   /?   Einstellungen des Moduls zeigen
@@ -50,6 +53,23 @@ Rad aussen, Rad im Rad, Oval, Dreieck.
 DMVWARP.AD - Der Schriftzug DECISION MATE V zieht einen Regenbogen aus
 Bloecken hinter sich her, der nach hinten breiter wird.
 /1 = Tempo (1..10), /2 = Laenge des Schweifs (20..90 Bloecke).
+
+DMVBDTSR.COM - startet DMVBD, wenn am DOS-Prompt eine Zeit lang keine
+Taste gedrueckt wurde (gut 1 KB resident, z. B. aus AUTOEXEC.BAT):
+  DMVBDTSR [n | nS] [DMVBD-Angaben]   nach n Minuten (Vorgabe 5),
+                                      nS: nach n Sekunden
+  DMVBDTSR /U                         wieder entfernen
+Beispiele:  DMVBDTSR 3                alle Module reihum nach 3 Minuten
+            DMVBDTSR 10 FLYDMV /N     FLYDMV ohne Startschirm
+DMVBDTSR legt sich an INT 21h und wartet nur, solange COMMAND.COM am
+Prompt auf die erste Taste einer neuen Zeile wartet - eine angefangene
+Zeile und laufende Programme bleiben unberuehrt. Ist die Zeit um, gibt
+es COMMAND die Zeile "DMVBD.EXE /T ..." (aus dem Verzeichnis von
+DMVBDTSR), als waere sie getippt; nach einer Taste kommt der Prompt auf
+leerem Schirm wieder. Ein zweiter Aufruf aendert Zeit und Angaben.
+Ohne 8259 (K230/K231) und unter NCR-DOS 2.11 geht es ebenso; unter
+DOS 2.x steht DMVBD aber nicht im Pfad des TSR - dann muss DMVBD im
+aktuellen Verzeichnis oder im PATH liegen.
 
 ADLISTE.TXT - welche Module von After Dark 1.0 unter DMVBD laufen.
 

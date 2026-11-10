@@ -18,19 +18,13 @@ def schieber(titel, mn, mx, pos):
     struct.pack_into('<H', b, 24, pos); struct.pack_into('<HHH', b, 48, mn, mx, 100)
     return bytes(b)
 
-def liste(titel, namen, werte, vorgabe):
-    n = len(namen)
-    b = bytearray(26 + 2 * n + 16 * n + 2 * n)
-    struct.pack_into('<H', b, 0, 1); b[2:2 + len(titel)] = titel.encode('latin1')
-    struct.pack_into('<HH', b, 22, n, vorgabe)
-    for k, s in enumerate(namen): b[26 + 2 * n + 16 * k:26 + 2 * n + 16 * k + len(s)] = s.encode('latin1')
-    for k, w in enumerate(werte): struct.pack_into('<H', b, 26 + 18 * n + 2 * k, w)
+def auswahl(titel, namen, vorgabe):             # Art 3: Liste, Wert = Nummer
+    b = bytearray(32 + 16 * len(namen))
+    struct.pack_into('<H', b, 0, 3); b[2:2 + len(titel)] = titel.encode('latin1')
+    struct.pack_into('<HH', b, 22, len(namen), vorgabe)
+    for k, s in enumerate(namen): b[32 + 16 * k:32 + 16 * k + len(s)] = s.encode('latin1')
     return bytes(b)
-
-open('res/CTL1.BIN', 'wb').write(schieber('Tempo:', 1, 4, 34))
-open('res/CTL2.BIN', 'wb').write(schieber('Dichte:', 10, 80, 43))       # Tausend Schritte
-# Liste: Eintrag 0 -> Wert 0, Eintrag k -> k-ter Wert der Tafel (wie After Dark)
-open('res/CTL3.BIN', 'wb').write(liste('Farbe:', ['Weiss', 'Bunt'], [1], 0))
+open('res/CTL3.BIN', 'wb').write(auswahl('Farbe:', ['Weiss', 'Bunt'], 0))
 open('res/CTL4.BIN', 'wb').write(bytes(32))
 open('res/T10.BIN', 'wb').write(b'Pickover-Attraktor - Code: Claude, Prompts: rfka01.\r\n  MIT-Lizenz.\0')
 open('res/T20.BIN', 'wb').write(b'Pickover\0')

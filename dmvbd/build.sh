@@ -16,13 +16,14 @@ done
 (cd $D/src && $JWASMEXE -omf -q -Fo$O/BLT86.obj BLT86.ASM)
 (cd $D/src && $JWASMEXE -Zm -omf -q -Fo$O/GPICW.obj GPICW.ASM)
 wlink op q system dos op map=DMVBD.MAP name DMVBD.EXE file BD.obj,NELOAD.obj,W16.obj,W16TAB.obj,DRV7220.obj,BLT86.obj,GPICW.obj
+(cd $D/tsr && $JWASMEXE -bin -q -Fo$O/DMVBDTSR.COM DMVBDTSR.ASM)
 # Module (Win16-DLLs): Verzeichnis:Name
 for m in flydmv:FLYDMV pickover:PICKOVER spiro:SPIRO dmvwarp:DMVWARP; do
   dir=${m%%:*}; n=${m##*:}
   wcc -zq -ms -bt=windows -bd -zu -zw -0 -os -s -w1 -I$WATCOM/h -I$WATCOM/h/win -fo=$n.obj $D/$dir/$n.C
   (cd $D/$dir && wrc -q -r -bt=windows -I$WATCOM/h/win -fo=$O/$n.res $n.RC)
   cat > $n.LNK <<LNK
-system windows dll initinstance
+system windows dll initglobal
 option quiet, map=$n.MAP, heapsize=1024
 option description '$n - Code: Claude, Prompts: rfka01'
 option resource=$n.res
@@ -34,4 +35,4 @@ export WEP.2 resident
 LNK
   wlink @$n.LNK
 done
-ls -l DMVBD.EXE *.AD
+ls -l DMVBD.EXE DMVBDTSR.COM *.AD

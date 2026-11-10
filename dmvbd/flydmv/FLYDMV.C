@@ -38,7 +38,7 @@ static int  stars;
 static int  sx[NSTAR], sy[NSTAR];
 static BYTE sk[NSTAR];
 
-static int rnd(int n) { seed = seed * 1103515245UL + 12345UL; return (int)((seed >> 16) % (unsigned)n); }
+static int rnd(int n) { seed = seed * 1103515245UL + 12345UL; return n > 0 ? (int)((seed >> 16) % (unsigned)n) : 0; }
 
 /* Rechteck alt minus neu schwarz loeschen (hoechstens zwei Streifen) */
 static void erase(HDC hdc, int ox, int oy, int nx, int ny, int w, int h)
@@ -93,7 +93,9 @@ static void newDmv(void)
 {
     int k, best = -1, bestd = -1, alt = dy;
     for (k = 0; k < 12; k++) {
-        int y = 84 + rnd(224 - 84 + 1), i, dmin = 400;
+        int ymax = H - PLH - DMVH, y, i, dmin = 400;  /* ueber dem Planeten */
+        if (ymax < 84) ymax = 84;
+        y = 84 + rnd(ymax - 84 + 1);
         for (i = 0; i < MAXDISK; i++) if (disk[i].on) {
             int g = disk[i].y > y + DMVH ? disk[i].y - (y + DMVH)
                   : y > disk[i].y + 24 ? y - (disk[i].y + 24) : 0;
@@ -117,9 +119,9 @@ static int doBlank(HDC hdc)
     blit(hdc, bmPlanet, W - PLW - 20, H - PLH, PLW, PLH);
     /* Sterne: nicht auf Sonne und Planet */
     for (i = 0; i < NSTAR; i++) {
-        int x, y;
+        int x, y, n = 0;
         do { x = rnd(W - 9); y = rnd(H - 9); }
-        while ((x > 110 && x < 190 && y < 90) || (x > W - PLW - 30 && y > H - PLH - 10));
+        while (++n < 20 && ((x > 110 && x < 190 && y < 90) || (x > W - PLW - 30 && y > H - PLH - 10)));
         sx[i] = x; sy[i] = y; sk[i] = (BYTE)rnd(4);
         blit(hdc, bmStar[sk[i]], x, y, 9, 9);
     }
@@ -132,6 +134,7 @@ static int doBlank(HDC hdc)
 static int doFrame(HDC hdc)
 {
     int i, ny, step = 1 + speed / 3;
+    if (!hMem) return NOERROR;              /* ohne BLANK nichts zeichnen */
     /* Sterne funkeln: je Bild zwei Sterne eine Stufe weiter (0 1 2 3 2 1 0 ...) */
     for (i = 0; i < 2; i++) {
         int k = stars++ % NSTAR, f = (sk[k] + 1) & 7;
@@ -197,18 +200,43 @@ static int doClose(void)
     return NOERROR;
 }
 
+/* Verteiler. After Dark schickt auch MODULESELECTED (Auswahl im
+   Kontrollfeld): dann gehoeren das eigene Modul-Handle und die Nummern
+   der Einstellungen in AD_MODULE, sonst liest After Dark die Einstellungen
+   aus dem zuletzt gewaehlten Modul. Auf schnellen Rechnern (ab 80286 oder
+   Windows im Standard-/Erweiterten Modus) hoechstens ein Bild je TAKT ms;
+   DMVBD meldet 8086 im Real Mode und laeuft ungebremst. */
+#define TAKT 50
 int FAR PASCAL Module(int msg, HDC hdc, HANDLE hSystem)
 {
+    static DWORD tlast;
+    static int takt;
     LPSYSTEM sys = (LPSYSTEM)GlobalLock(hSystem);
-    LPMODULE mod = (LPMODULE)GlobalLock(sys->hModuleInfo);
-    int r = NOERROR;
-    switch (msg) {
-    case INITIALIZE: r = doInit(mod); break;
-    case BLANK:      r = doBlank(hdc); break;
-    case DRAWFRAME:  r = doFrame(hdc); break;
-    case CLOSE:      r = doClose(); break;
+    LPMODULE mod;
+    int r = NOERROR, i;
+    if (!sys) return NOERROR;
+    if ((mod = (LPMODULE)GlobalLock(sys->hModuleInfo)) != NULL) {
+        switch (msg) {
+        case INITIALIZE:
+            takt = sys->iProcessorType >= 2 || sys->iOperatingMode != 0;
+            tlast = GetCurrentTime();
+            r = doInit(mod); break;
+        case BLANK:      r = doBlank(hdc); break;
+        case DRAWFRAME:
+            if (takt) {
+                DWORD t = GetCurrentTime();
+                if (t - tlast < TAKT) break;
+                tlast = t;
+            }
+            r = doFrame(hdc); break;
+        case CLOSE:      r = doClose(); break;
+        case MODULESELECTED:
+            mod->hModule = hInst;
+            for (i = 0; i < 4; i++) mod->iControlID[i] = i + 1;
+            break;
+        }
+        GlobalUnlock(sys->hModuleInfo);
     }
-    GlobalUnlock(sys->hModuleInfo);
     GlobalUnlock(hSystem);
     return r;
 }

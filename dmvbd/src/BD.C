@@ -389,11 +389,13 @@ int main(int argc, char **argv)
 {
     char pfad[80], dir[80];
     const char *path = 0, *setc[4] = { 0, 0, 0, 0 };
-    int i, k, force = 0, mono, titel = 1, zeigen = 0, erstes = 1, fehler = 0;
+    int i, k, force = 0, mono, titel = 1, zeigen = 0, erstes = 1, fehler = 0, tsr = 0;
     short ctl[4];
     DWORD dauer = 0;
 
-    printf("DMVBD - Before Dawn, Bildschirmschoner fuer die NCR DMV\n");
+    for (i = 1; i < argc; i++)               /* /T: von DMVBDTSR gestartet */
+        if ((argv[i][0] == '/' || argv[i][0] == '-') && (argv[i][1] & 0xDF) == 'T') tsr = 1;
+    if (!tsr) printf("DMVBD - Before Dawn, Bildschirmschoner fuer die NCR DMV\n");
     for (i = 1; i < argc; i++) {
         char *a = argv[i];
         if (a[0] == '/' || a[0] == '-') {
@@ -411,6 +413,7 @@ int main(int argc, char **argv)
             else if (a[1] >= '1' && a[1] <= '4' && a[2] == '=') setc[a[1] - '1'] = a + 3;
         } else path = a;
     }
+    if (tsr && !path && !dauer) dauer = 2 * 60000L;   /* ohne Modul: alle reihum */
     if (!path && !dauer) {
         printf("Aufruf: DMVBD [modul[.AD]] [/M|/C] [/N] [/R:n] [/?] [/1=w ... /4=w]\n"
                "  /R:n  alle n Minuten das naechste Modul aus dem Verzeichnis\n"
@@ -427,6 +430,20 @@ int main(int argc, char **argv)
         if (c > b) b = c;
         if (!strchr(b ? b : pfad, '.')) strcat(pfad, ".AD");
         if (b) { k = (int)(b - pfad) + 1; memcpy(dir, pfad, k); dir[k] = 0; }
+    }
+    /* /T: Module ohne Verzeichnisangabe neben DMVBD.EXE suchen (COMMAND
+       startet DMVBD im aktuellen Verzeichnis, wo die Module meist fehlen) */
+    if (tsr && !dir[0]) {
+        const char *n = nur_name(argv[0]);
+        k = (int)(n - argv[0]);
+        if (k > 0 && k < 60) {
+            memcpy(dir, argv[0], k); dir[k] = 0;
+            if (path) {
+                char t[16];
+                strncpy(t, pfad, 15); t[15] = 0;
+                strcpy(pfad, dir); strcat(pfad, t);
+            }
+        }
     }
     mono = force ? force == 1 : romletter() == 'M';
     drv_mono = mono;
@@ -481,6 +498,7 @@ int main(int argc, char **argv)
         k = (k + 1) % nad;
     }
     w16_done();
+    if (tsr) return 0;                      /* Textschirm ist geloescht (g_text), dann der Prompt */
     printf("%ld Bilder in %lu ms\n", frames, t_ges);
     w16_report();
     return 0;

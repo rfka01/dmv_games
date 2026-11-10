@@ -2,7 +2,7 @@
 
 *Abspieler für After-Dark-kompatible Bildschirmschoner-Module auf der NCR DMV – player for After-Dark-compatible screen saver modules on the NCR DMV*
 
-Version 0.1 (10.11.2026, Testfassung / test release) – Diskette / disk image: [`../images/DMVBD-V0.1.IMG`](../images/DMVBD-V0.1.IMG)
+Version 0.2 (11.11.2026, Testfassung / test release) – Diskette / disk image: [`../images/DMVBD-V0.2.IMG`](../images/DMVBD-V0.2.IMG)
 
 ![Startschirm / title screen](screenshots/titel.png)
 ![FLYDMV](screenshots/flydmv.png)
@@ -30,9 +30,14 @@ Eigene Module auf der Diskette:
 
 **Aufruf:** `DMVBD [modul] [/M | /C] [/N] [/R:n] [/?] [/1=w … /4=w]` – Endung `.AD` darf fehlen;
 `/R:n` wechselt alle n Minuten das Modul; Taste **E** öffnet die Einstellungen (gespeichert in `DMVBD.INI`).
+**DMVBDTSR.COM** (560 Byte resident) startet DMVBD, wenn am DOS-Prompt eine Zeit lang keine Taste kam:
+`DMVBDTSR [n | nS] [DMVBD-Angaben]` (n Minuten, Vorgabe 5; nS Sekunden), `DMVBDTSR /U` entfernt es. Es nutzt nur
+DOS (INT 21h), keine Hardware-Interrupts, und läuft deshalb auch mit K230/K231 ohne 8259.
 Alles Weitere in [LIESMICH.TXT](LIESMICH.TXT). Welche Module von After Dark 1.0 laufen: [ADLISTE.TXT](ADLISTE.TXT).
 
 **Braucht:** DMV mit 8088-Karte und MS-DOS, Farbe oder Monochrom (Kennbuchstabe im ROM, `/M` `/C` erzwingen).
+
+Die eigenen Module sind auch für After Dark 1.0 unter Windows 3.0 gebaut.
 
 After-Dark-Module gehören nicht zu DMVBD und liegen weder hier noch auf der Diskette.
 
@@ -47,8 +52,12 @@ Own modules on the disk: FLYDMV (flying DMV with rainbow floppies or a banner), 
 attractors scrolling upwards), SPIRO (spirograph with several wheel types), DMVWARP (text logo with rainbow trail).
 
 **Usage:** `DMVBD [module] [/M | /C] [/N] [/R:n] [/?] [/1=v … /4=v]` – `.AD` may be omitted; `/R:n` rotates
-modules every n minutes; key **E** opens the settings (stored in `DMVBD.INI`). Details (German) in LIESMICH.TXT,
+modules every n minutes; key **E** opens the settings (stored in `DMVBD.INI`).
+**DMVBDTSR.COM** (560 bytes resident) starts DMVBD after n minutes without a key at the DOS prompt (`/U` removes it);
+it only uses DOS (INT 21h), no hardware interrupts. Details (German) in LIESMICH.TXT,
 After Dark compatibility list in ADLISTE.TXT.
+
+The own modules are also built for After Dark 1.0 under Windows 3.0.
 
 After Dark modules are not part of DMVBD and are neither included here nor on the disk.
 
@@ -61,6 +70,7 @@ Laufzeitbibliothek von Open Watcom / the EXE contains the Open Watcom runtime li
   (Treiber), GPICW.ASM/GPIC.INC (PIC-Lader aus DMVGRAF)
 - `src/W16TAB.C` – Einsprungtabellen, erzeugt von `tools/mktab.py` aus den .spec-Dateien von Wine (nicht beigelegt) /
   generated from Wine's .spec files (not included)
+- `tsr/DMVBDTSR.ASM` – das TSR / the TSR (JWasm, `-bin`)
 - `titel/` – Startschirm (`mktitel.py` → DMVBD.PIC), `flydmv/ pickover/ spiro/ dmvwarp/` – Module mit Grafik-Erzeugern
 - `tools/win16sim.py` – Python-Prototyp der Win16-Schicht / Python prototype of the Win16 layer
 

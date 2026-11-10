@@ -38,7 +38,7 @@ static const COLORREF regenbogen[6] = {
     RGB(255, 0, 0), RGB(255, 255, 0), RGB(0, 255, 0),
     RGB(0, 255, 255), RGB(0, 0, 255), RGB(255, 0, 255) };
 
-static int rnd(int n) { seed = seed * 1103515245UL + 12345UL; return (int)((seed >> 16) % (unsigned)n); }
+static int rnd(int n) { seed = seed * 1103515245UL + 12345UL; return n > 0 ? (int)((seed >> 16) % (unsigned)n) : 0; }
 static int ggt(int a, int b) { if (a < 0) a = -a; if (b < 0) b = -b; while (b) { int c = a % b; a = b; b = c; } return a; }
 
 static int qsin(long a) { return sintab[(int)(a & 1023)]; }          /* 1.0 = 16384 */
@@ -269,20 +269,45 @@ static int doClose(void)
     return NOERROR;
 }
 
+/* Verteiler. After Dark schickt auch MODULESELECTED (Auswahl im
+   Kontrollfeld): dann gehoeren das eigene Modul-Handle und die Nummern
+   der Einstellungen in AD_MODULE, sonst liest After Dark die Einstellungen
+   aus dem zuletzt gewaehlten Modul. Auf schnellen Rechnern (ab 80286 oder
+   Windows im Standard-/Erweiterten Modus) hoechstens ein Bild je TAKT ms;
+   DMVBD meldet 8086 im Real Mode und laeuft ungebremst. */
+#define TAKT 50
 int FAR PASCAL Module(int msg, HDC hdc, HANDLE hSystem)
 {
+    static DWORD tlast;
+    static int takt;
     LPSYSTEM sys = (LPSYSTEM)GlobalLock(hSystem);
-    LPMODULE mod = (LPMODULE)GlobalLock(sys->hModuleInfo);
-    int r_ = NOERROR;
-    switch (msg) {
-    case INITIALIZE: r_ = doInit(sys, mod); break;
-    case BLANK:      r_ = doBlank(hdc); break;
-    case DRAWFRAME:  r_ = doFrame(hdc); break;
-    case CLOSE:      r_ = doClose(); break;
+    LPMODULE mod;
+    int r = NOERROR, i;
+    if (!sys) return NOERROR;
+    if ((mod = (LPMODULE)GlobalLock(sys->hModuleInfo)) != NULL) {
+        switch (msg) {
+        case INITIALIZE:
+            takt = sys->iProcessorType >= 2 || sys->iOperatingMode != 0;
+            tlast = GetCurrentTime();
+            r = doInit(sys, mod); break;
+        case BLANK:      r = doBlank(hdc); break;
+        case DRAWFRAME:
+            if (takt) {
+                DWORD t = GetCurrentTime();
+                if (t - tlast < TAKT) break;
+                tlast = t;
+            }
+            r = doFrame(hdc); break;
+        case CLOSE:      r = doClose(); break;
+        case MODULESELECTED:
+            mod->hModule = hInst;
+            for (i = 0; i < 4; i++) mod->iControlID[i] = i + 1;
+            break;
+        }
+        GlobalUnlock(sys->hModuleInfo);
     }
-    GlobalUnlock(sys->hModuleInfo);
     GlobalUnlock(hSystem);
-    return r_;
+    return r;
 }
 
 int PASCAL LibMain(HANDLE hInstance, WORD wDataSeg, WORD wHeapSize, LPSTR lpCmdLine)
