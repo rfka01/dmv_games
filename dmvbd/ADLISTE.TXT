@@ -1,0 +1,49 @@
+DMVBD - After-Dark-Module (After Dark 1.0 fuer Windows 3.0) unter DMVBD
+Stand 10.11.2026. Code: Claude, Prompts: rfka01
+
+Die Module selbst gehoeren nicht zu DMVBD und liegen nicht bei.
+"MAME" = von rfka01 in MAME getestet; "Emulator" = nur in der
+Testumgebung von DMVBD gesehen, in MAME noch zu pruefen.
+
+LAEUFT
+  MONDRIAN   MAME
+  TOASTERS   MAME (langsam: zehn Bilder 64x64 je Schritt)
+  WARP       MAME (langsam; laesst sich schlecht beenden, s. u.)
+  NOCTURNE   Emulator (Augen im Dunkeln)
+  LASER      Emulator
+  SGYRA      Emulator
+  ZOT        Emulator (Blitze)
+  RAINSTOR   Emulator (Regen und Blitze)
+  CLOCKS     Emulator: Uhren wandern und gehen; 12-Stunden-Anzeige ist
+             fest im Modul
+  SHAPES     Emulator (Rechtecke und Ellipsen)
+  SPHERES    Emulator (Kugeln)
+  RAIN       Emulator (Regentropfen auf dem Wasser)
+  GRAV       Emulator (Schwerkraft-Baelle; ohne Ton)
+  WORMS      Emulator (ohne Ton)
+  FADE       Emulator: wischt nach Schwarz - unter DMVBD ist der Schirm
+             schon schwarz, man sieht also nichts
+
+LAEUFT NICHT - FEHLT IN DMVBD                               AUFWAND
+  PUNCH, SPOTLITE             Clipping-Regionen; DOS-Bild-
+                              schirm als Ausgangsbild (auch
+                              fuer FADE)                     mittel-gross
+  MAGIC, STRING               Palette (Paletten-Anfrage)     mittel
+  SATORI                      Palettenrotation (die DMV hat
+                              8 feste Farben)                gross
+  3DBOUNCE                    gefuelltes Vieleck             mittel
+  MOUNTAIN                    Vieleck, Gleitkomma, wsprintf  mittel-gross
+  WRAP, ROSE, DRAINO,
+  VERTIGO, GRAFSTAT, GLOBE    Gleitkomma (WIN87EM)           mit 8087 klein,
+                                                             ohne 8087 gross
+  AQUA                        StretchBlt, Text               mittel
+  STAINED                     StretchBlt, Fensterursprung    mittel
+  MESSAGE                     Schriften, Fenster, Dialoge    gross
+  LOGO, SLIDESHO              Dateien, Dialoge, DIB-Bilder   gross
+  PUZZLE                      Ton                            mittel
+  Ton allgemein (GRAV, WORMS, PUNCH, PUZZLE, CLOCKS): SOUND.DRV auf den
+  Lautsprecher am 8741                                       mittel
+
+BEKANNT
+  WARP, SATORI: rechnen sehr lange an einem Bild; die Taste wirkt erst
+  danach.

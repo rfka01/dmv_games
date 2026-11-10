@@ -1,12 +1,13 @@
 # DMV Games
 
-Spiele für den NCR Decision Mate V (DMV) mit Farbgrafik (µPD7220) unter MS-DOS und CP/M-8000.
-Games for the NCR Decision Mate V (DMV) with colour graphics (µPD7220) under MS-DOS and CP/M-8000.
+Spiele und Programme für den NCR Decision Mate V (DMV) mit Farbgrafik (µPD7220) unter MS-DOS und CP/M-8000.
+Games and programs for the NCR Decision Mate V (DMV) with colour graphics (µPD7220) under MS-DOS and CP/M-8000.
 
 | Spiel / Game | Verzeichnis / Directory | Diskette / Disk image |
 |---|---|---|
 | **Hoppler** – frei nach Perestroika/Toppler / loosely based on Perestroika/Toppler | [`hoppler/`](hoppler/) | [`images/HOPPLER-V0.18.IMG`](images/HOPPLER-V0.18.IMG) |
 | **Mahjongg** – Solitär mit Maus, CP/M-8000 (K238) / solitaire with mouse, CP/M-8000 (K238) | [`mahjongg/`](mahjongg/) | [`images/MAHJONGG-8000-V0.12.IMG`](images/MAHJONGG-8000-V0.12.IMG), [`-68K-`](images/MAHJONGG-68K-V0.12.IMG) (320 KB, CP/M-Datendisketten / data disks), [`-DOS-`](images/MAHJONGG-DOS-V0.12.IMG) (360 KB) |
+| **DMVBD** – „Before Dawn“, After-Dark-Bildschirmschoner unter DOS / After Dark screen savers under DOS | [`dmvbd/`](dmvbd/) | [`images/DMVBD-V0.1.IMG`](images/DMVBD-V0.1.IMG) |
 
 [![Hoppler](hoppler/screenshots/titel.png)](hoppler/)
 

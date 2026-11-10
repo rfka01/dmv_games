@@ -1,0 +1,56 @@
+DMVBD - "Before Dawn"
+Abspieler fuer After-Dark-kompatible Bildschirmschoner-Module
+(Windows 3.0, Real Mode) auf der NCR Decision Mate V, ohne Windows.
+Code: Claude, Prompts: rfka01
+
+Aufruf:  DMVBD [modul] [/M | /C] [/N] [/R:n] [/?] [/1=w /2=w /3=w /4=w]
+  modul  Name des Moduls; ohne Endung wird .AD angenommen
+  /R:n alle n Minuten (ohne Zahl: 2) das naechste Modul aus dem
+       Verzeichnis, reihum nach dem Alphabet; mit modul geht es dort
+       los, sonst beim ersten. /1../4 gelten nur fuer das genannte Modul
+  /M   Monochrom erzwingen, /C Farbe erzwingen
+       (sonst entscheidet der Kennbuchstabe im ROM)
+  /N   ohne Startschirm (sonst DMVBD.PIC aus dem Verzeichnis von
+       DMVBD.EXE; eine Taste oder 8 Sekunden: weiter)
+  /?   Einstellungen des Moduls zeigen
+  /1=w .. /4=w  Einstellungen des Moduls (sonst seine Vorgaben):
+       Schieber: Zahl im angezeigten Bereich; Liste: Nummer oder
+       Anfang des Namens; an/aus: 1 oder 0
+Taste E: Einstellungen des laufenden Moduls (Ziffer waehlt, + und -
+aendern, Eingabe uebernimmt, Esc verwirft). Die Werte stehen danach je
+Modul in DMVBD.INI neben DMVBD.EXE und gelten auch beim naechsten Start
+und im Wechselbetrieb; /1../4 auf der Kommandozeile gehen vor.
+Jede andere Taste beendet; danach zeigt DMVBD die Zahl der Bilder, die
+Zeit und nicht umgesetzte Windows-Funktionen.
+
+Beispiele:  DMVBD FLYDMV /1=8 /2=6
+            DMVBD TOASTERS /?
+            DMVBD TOASTERS /1=8 /2=Medium
+            DMVBD FLYDMV /R:3
+
+FLYDMV.AD - "Fliegende DMV": eine DMV fliegt durchs All und stoesst
+Disketten in Regenbogenfarben aus - oder zieht ein flatterndes Banner
+"DECISION MATE V" hinter sich her.  /1 = Zahl der Disketten (2..12),
+/2 = Tempo (1..10), /3 = Ladung: Disketten, Banner oder Wechsel
+(Vorgabe: abwechselnd je Flug).
+
+PICKOVER.AD - Seltsame Attraktoren nach Clifford Pickover, als Dichte
+in Grau gezeichnet; jedes Gebilde zieht von unten nach oben durch das
+Bild. /1 = Tempo (Zeilen je Bild, 1..4), /2 = Dichte (Tausend Schritte,
+10..80), /3 = Farbe (Weiss oder Bunt: ueber Blau und Cyan nach Weiss).
+Das naechste Gebilde wird gerechnet, waehrend das laufende durchzieht.
+
+SPIRO.AD - Spirograph: ein Rad rollt im Zahnkranz (weiss, Zacken
+nach innen) oder um ein Mittelrad, auch Rad im Rad und unrunde Raeder
+(Oval, Dreieck); ein weisses Kreuz zeigt den Stift. /1 = Tempo (1..10),
+/2 = Figuren, bis der Innenraum geleert wird (1..8, Vorgabe 2),
+/3 = Zahnkranz zeigen (1/0), /4 = Raeder: Gemischt, Rad innen,
+Rad aussen, Rad im Rad, Oval, Dreieck.
+
+DMVWARP.AD - Der Schriftzug DECISION MATE V zieht einen Regenbogen aus
+Bloecken hinter sich her, der nach hinten breiter wird.
+/1 = Tempo (1..10), /2 = Laenge des Schweifs (20..90 Bloecke).
+
+ADLISTE.TXT - welche Module von After Dark 1.0 unter DMVBD laufen.
+
+Stand: in MAME getestet.

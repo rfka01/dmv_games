@@ -1,0 +1,9 @@
+/* DMVWARP.RC - Ressourcen von DMV-Warp. Code: Claude, Prompts: rfka01 */
+LOGO BITMAP "res/LOGO.BMP"
+1 1000 "res/CTL1.BIN"
+2 1000 "res/CTL2.BIN"
+3 1000 "res/CTL3.BIN"
+4 1000 "res/CTL4.BIN"
+10 2000 "res/T10.BIN"
+20 2000 "res/T20.BIN"
+30 2000 "res/T30.BIN"
