@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Schriftzug und Ressourcen von DMVWARP.AD: "DECISION MATE V" in duenner
-eigener Schrift (DejaVu Sans ExtraLight), das V gross; dazu Einstellungen
+"""Schriftzug und Ressourcen von DMVWARP.AD: "DECISION MATE V" in
+eigener Strichschrift, 2 Punkte stark, das V gross; dazu Einstellungen
 und Texte. Code: Claude, Prompts: rfka01"""
 from PIL import Image, ImageDraw, ImageFont
 import struct, os
@@ -43,14 +43,18 @@ def logo():
     im = Image.new('L', (W, H), 0); d = ImageDraw.Draw(im)
     x = 2
     for c in 'DECISION':
-        x += buchstabe(d, c, x, 4) + 5
+        x += buchstabe(d, c, x, 4) + 6
     xe = x
     x = 2
     for c in 'MATE':
-        x += buchstabe(d, c, x, 28) + 5
+        x += buchstabe(d, c, x, 28) + 6
     # grosses V, Unterkante bei Zeile 43, oben auf Hoehe der ersten Zeile
     vx = xe + 6
     d.line([(vx, 2), (vx + 15, 45)], fill=255); d.line([(vx + 16, 45), (vx + 31, 2)], fill=255)
+    # Striche 2 Punkte breit: jede Spalte auch rechts daneben setzen (die
+    # Kanten bleiben auf Punktspalten; DMV-Punkte sind hoeher als breit)
+    from PIL import ImageChops
+    im = ImageChops.lighter(im, ImageChops.offset(im, 1, 0))
     bb = im.getbbox(); im = im.crop((0, 0, bb[2] + 2, H))
     return im
 

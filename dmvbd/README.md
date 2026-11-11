@@ -2,7 +2,7 @@
 
 *Abspieler für After-Dark-kompatible Bildschirmschoner-Module auf der NCR DMV – player for After-Dark-compatible screen saver modules on the NCR DMV*
 
-Version 0.2 (11.11.2026, Testfassung / test release) – Diskette / disk image: [`../images/DMVBD-V0.2.IMG`](../images/DMVBD-V0.2.IMG)
+Version 0.3 (11.11.2026, Testfassung / test release) – Diskette / disk image: [`../images/DMVBD-V0.3.IMG`](../images/DMVBD-V0.3.IMG)
 
 ![Startschirm / title screen](screenshots/titel.png)
 ![FLYDMV](screenshots/flydmv.png)

@@ -16,6 +16,25 @@
 static HANDLE   hInst;
 static HDC      hMem;
 static HBITMAP  bmBan[3], bmDmv[2], bmDisk[6][4], bmSun, bmPlanet, bmStar[4], bmOld;
+/* Unter Windows: Masken zu jeder Bitmap. Windows bildet die Himmelsfarbe
+   einer Bitmap auf Schwarz ab, der Himmelspinsel ist aber gerastert -
+   ohne Maske stuende jedes Bild in einem schwarzen Kasten. In DMVBD sind
+   beide gleich gerastert, dort entfaellt der zweite Schritt. */
+#define NBM 35
+static struct { HBITMAP bm, mk; } tab[NBM];
+static int nbm, fenster;
+static HBITMAP lade(char *name)
+{
+    char m[8];
+    int i;
+    HBITMAP b = LoadBitmap(hInst, name);
+    if (fenster && nbm < NBM) {
+        m[0] = 'M'; for (i = 0; i < 6 && name[i]; i++) m[i + 1] = name[i];
+        m[i + 1] = 0;
+        tab[nbm].bm = b; tab[nbm].mk = LoadBitmap(hInst, m); nbm++;
+    }
+    return b;
+}
 static HBRUSH   hSky;
 static int      W, H;               /* Zeichenbereich */
 static int      nDisks, speed;
@@ -55,8 +74,19 @@ static void erase(HDC hdc, int ox, int oy, int nx, int ny, int w, int h)
    der Bitmaps (DMV-Farbe und Mono) zum Raster des Hintergrunds */
 static void blit(HDC hdc, HBITMAP bm, int x, int y, int w, int h)
 {
+    int i;
     SelectObject(hMem, bm);
     BitBlt(hdc, x & ~1, y & ~1, w, h, hMem, 0, 0, SRCCOPY);
+    for (i = 0; i < nbm; i++) if (tab[i].bm == bm) {
+        if (tab[i].mk) {                    /* Maske 1: Himmelspinsel, 0: Bild bleibt */
+            HBRUSH ob = SelectObject(hdc, hSky);
+            SelectObject(hMem, tab[i].mk);
+            SetTextColor(hdc, RGB(0, 0, 0)); SetBkColor(hdc, RGB(255, 255, 255));
+            BitBlt(hdc, x & ~1, y & ~1, w, h, hMem, 0, 0, 0x00E20746L);   /* DSPDxax */
+            SelectObject(hdc, ob);
+        }
+        break;
+    }
 }
 
 static void sky(HDC hdc, int x, int y, int w, int h)
@@ -75,12 +105,13 @@ static int doInit(LPMODULE m)
     nDisks = m->iControlValue[0]; if (nDisks < 1) nDisks = 1; if (nDisks > MAXDISK) nDisks = MAXDISK;
     speed = m->iControlValue[1]; if (speed < 1) speed = 1; if (speed > 10) speed = 10;
     ladung = m->iControlValue[2]; if (ladung < 0 || ladung > 2) ladung = 2;
-    bmBan[0] = LoadBitmap(hInst, "BAN0"); bmBan[1] = LoadBitmap(hInst, "BAN1"); bmBan[2] = LoadBitmap(hInst, "BAN2");
-    bmDmv[0] = LoadBitmap(hInst, "DMV0"); bmDmv[1] = LoadBitmap(hInst, "DMV1");
-    for (c = 0; c < 6; c++) for (k = 0; k < 4; k++) bmDisk[c][k] = LoadBitmap(hInst, dn[c][k]);
-    bmSun = LoadBitmap(hInst, "SUN"); bmPlanet = LoadBitmap(hInst, "PLANET");
-    bmStar[0] = LoadBitmap(hInst, "STAR0"); bmStar[1] = LoadBitmap(hInst, "STAR1");
-    bmStar[2] = LoadBitmap(hInst, "STAR2"); bmStar[3] = LoadBitmap(hInst, "STAR3");
+    nbm = 0;
+    bmBan[0] = lade("BAN0"); bmBan[1] = lade("BAN1"); bmBan[2] = lade("BAN2");
+    bmDmv[0] = lade("DMV0"); bmDmv[1] = lade("DMV1");
+    for (c = 0; c < 6; c++) for (k = 0; k < 4; k++) bmDisk[c][k] = lade(dn[c][k]);
+    bmSun = lade("SUN"); bmPlanet = lade("PLANET");
+    bmStar[0] = lade("STAR0"); bmStar[1] = lade("STAR1");
+    bmStar[2] = lade("STAR2"); bmStar[3] = lade("STAR3");
     hSky = CreateSolidBrush(RGB(0, 0, 64));       /* Nachtblau: auf der DMV ein Viertel Blau gerastert */
     if (!bmDmv[0] || !bmPlanet || !bmStar[3] || !hSky) return MEM_ERROR;
     seed = GetCurrentTime();
@@ -196,6 +227,8 @@ static int doClose(void)
     for (c = 0; c < 6; c++) for (k = 0; k < 4; k++) DeleteObject(bmDisk[c][k]);
     DeleteObject(bmSun); DeleteObject(bmPlanet);
     for (c = 0; c < 4; c++) DeleteObject(bmStar[c]);
+    for (c = 0; c < nbm; c++) if (tab[c].mk) DeleteObject(tab[c].mk);
+    nbm = 0;
     DeleteObject(hSky);
     return NOERROR;
 }
@@ -219,6 +252,7 @@ int FAR PASCAL Module(int msg, HDC hdc, HANDLE hSystem)
         switch (msg) {
         case INITIALIZE:
             takt = sys->iProcessorType >= 2 || sys->iOperatingMode != 0;
+            fenster = takt;                 /* Windows auf schnellem Rechner: Masken */
             tlast = GetCurrentTime();
             r = doInit(mod); break;
         case BLANK:      r = doBlank(hdc); break;

@@ -148,7 +148,10 @@ static void g_areas(void)
     WORD l0 = RING - d_org, l1, a0 = d_org * 40;
     BYTE pr[8];
     if (l0 > 400) l0 = 400;
-    l1 = 400 - l0; if (!l1) l1 = 400;      /* Partition 1 liegt dann unter dem Bild */
+    /* Partition 1 reicht bis ans Ende jedes Bildes: zeigt der GDC mehr als
+       400 Zeilen (in MAME der Fall), kaeme sonst Partition 2 ins Bild - und
+       deren PRAM 8..11 ist das Muster der Grafikzeichen, also Abfall */
+    l1 = 1023;
     pr[0] = (BYTE)a0; pr[1] = (BYTE)(a0 >> 8); pr[2] = (BYTE)((l0 & 15) << 4); pr[3] = (BYTE)(((l0 >> 4) & 0x3F) | 0x40);
     pr[4] = 0; pr[5] = 0; pr[6] = (BYTE)((l1 & 15) << 4); pr[7] = (BYTE)(((l1 >> 4) & 0x3F) | 0x40);
     gwait();

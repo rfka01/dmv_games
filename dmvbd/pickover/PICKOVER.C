@@ -11,12 +11,15 @@
    hereinlaeuft und oben hinauszieht, wird das naechste gerechnet. Gerollt
    wird mit ScrollDC (in DMVBD: Hardware-Rollen des 7220), die neuen
    Zeilen kommen mit SetDIBitsToDevice. Ganzzahlig (Q12, Sinustafel).
+   Vorher zieht ein Vorspann in Star-Wars-Neigung durchs Bild (TITEL.H),
+   waehrend das erste Gebilde schon gerechnet wird.
    Code: Claude, Prompts: rfka01 - MIT-Lizenz */
 
 #include <windows.h>
 #include <string.h>
 #include "PICKOVER.H"
 #include "SINTAB.H"
+#include "TITEL.H"
 
 #define PW 320                   /* Gebilde: Breite, Hoehe in Punkten */
 #define PH 300
@@ -48,6 +51,12 @@ static struct {
     RGBQUAD pal[16];
 } bmi;
 static BYTE zbuf[MAXN][PW / 2];  /* Ausgabezeilen, 4 Bit */
+static BYTE tbuf[MAXN][TW / 8];  /* Vorspannzeilen, 1 Bit */
+static int  tz;                  /* naechste Zeile des Vorspanns */
+static struct {
+    BITMAPINFOHEADER h;
+    RGBQUAD pal[2];
+} tbmi;
 
 static const BYTE bayer[4][4] = { {0,8,2,10}, {12,4,14,6}, {3,11,1,9}, {15,7,13,5} };
 /* Zaehler 0..15 -> Helligkeit 0..48 (etwa logarithmisch) */
@@ -172,6 +181,10 @@ static int doInit(LPSYSTEM sys, LPMODULE m)
     for (i = 0; i < 16; i++) {
         bmi.pal[i].rgbRed = pal[i][0]; bmi.pal[i].rgbGreen = pal[i][1]; bmi.pal[i].rgbBlue = pal[i][2];
     }
+    tbmi.h = bmi.h;
+    tbmi.h.biWidth = TW; tbmi.h.biBitCount = 1;
+    tbmi.pal[1].rgbRed = tbmi.pal[1].rgbGreen = 255;           /* Gelb */
+    tbmi.pal[1].rgbBlue = mono ? 255 : 0;                       /* mono: Weiss */
     xoff = (W - PW) / 2; if (xoff < 0) xoff = 0;
     xoff &= ~3;
     seed = GetCurrentTime();
@@ -183,7 +196,8 @@ static int doBlank(HDC hdc)
     RECT r;
     SetRect(&r, 0, 0, W, H);
     FillRect(hdc, &r, GetStockObject(BLACK_BRUSH));
-    ein = 0; zeile = PH; luecke = 0;      /* nichts laeuft ein; Puffer 1 rechnen */
+    ein = 0; zeile = PH; luecke = 0;      /* zuerst der Vorspann; Puffer 1 rechnen */
+    tz = 0;
     erstes = 1; bereit = 0;
     neu_beginnen(1);
     return NOERROR;
@@ -198,7 +212,15 @@ static int doFrame(HDC hdc)
        jeder Punkt der untersten Zeile einen senkrechten Strich nach oben) */
     SetRect(&upd, 0, H - n, W, H);
     FillRect(hdc, &upd, GetStockObject(BLACK_BRUSH));
-    if (zeile < PH) {                        /* Gebilde laeuft ein */
+    if (tz < TH) {                           /* Vorspann laeuft ein */
+        if (tz + n > TH) n = TH - tz;
+        for (k = 0; k < n; k++)              /* DIB: unterste Zeile zuerst */
+            _fmemcpy(tbuf[n - 1 - k], titel[tz + k], TW / 8);
+        tbmi.h.biHeight = n;
+        SetDIBitsToDevice(hdc, (W - TW) / 2 & ~7, H - n, TW, n, 0, 0, 0, n, (LPSTR)tbuf, (LPBITMAPINFO)&tbmi, DIB_RGB_COLORS);
+        tz += n;
+        if (tz >= TH) luecke = 0;
+    } else if (zeile < PH) {                 /* Gebilde laeuft ein */
         if (zeile + n > PH) n = PH - zeile;
         for (k = 0; k < n; k++)              /* DIB: unterste Zeile zuerst */
             zeile_bauen(zbuf[n - 1 - k], ein, zeile + k, H - n + k);
@@ -213,14 +235,18 @@ static int doFrame(HDC hdc)
     /* Rechnen: so viele Schritte, dass das naechste Gebilde fertig ist,
        wenn das laufende samt Luecke durch ist */
     if (!bereit) {
-        long rest = (long)(PH - (zeile < PH ? zeile : PH)) + LUECKE;
-        schritte = (int)(nmax * tempo / rest + 1);
-        if (zeile >= PH && luecke >= LUECKE) schritte = 1500;   /* wartet: schneller */
+        /* die restlichen Schritte gleichmaessig auf die restlichen Zeilen
+           verteilen, sonst ist der Anfang langsam und der Rest schnell */
+        long rest = (long)(PH - (zeile < PH ? zeile : PH)) + LUECKE + (TH - tz);
+        long offen = (erstes ? nmax / 4 : nmax) + ERKUNDEN - iter;
+        if (offen < 0) offen = 0;
+        schritte = (int)(offen * tempo / rest + 1);
+        if (tz >= TH && zeile >= PH && luecke >= LUECKE) schritte = 1500;   /* wartet: schneller */
         if (schritte > 1500) schritte = 1500;
         if (schritte < 100) schritte = 100;
         bereit = rechnen(1 - ein, schritte);
     }
-    if (bereit && zeile >= PH && luecke >= LUECKE) {
+    if (bereit && tz >= TH && zeile >= PH && luecke >= LUECKE) {
         ein = 1 - ein; zeile = 0; erstes = 0;
         bereit = 0; neu_beginnen(1 - ein);
     }

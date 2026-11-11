@@ -32,3 +32,44 @@ open('res/T30.BIN', 'wb').write(
     b'PICKOVER\r\n\r\nSeltsame Attraktoren nach Clifford Pickover: eine immer wieder '
     b'angewandte Abbildung mit Sinus und Kosinus, als Dichte in Grau gezeichnet. '
     b'Jedes Gebilde zieht von unten nach oben durch das Bild.\0')
+
+# Vorspann: drei Zeilen, nach hinten geneigt (oben schmaler und flacher),
+# 1 Bit je Punkt, oberste Zeile zuerst -> TITEL.H
+from PIL import Image, ImageDraw, ImageFont
+TW, TH = 480, 132                                # Breite, Hoehe auf dem Schirm
+ZEILEN = ['Clifford', "Pickover's", 'seltsamer Attraktor']
+F = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 96)
+SW, ZH = 1400, 124                               # flacher Block, doppelt fein
+flach = Image.new('L', (SW, ZH * len(ZEILEN) + 16), 0)
+dr = ImageDraw.Draw(flach)
+for i, t in enumerate(ZEILEN):
+    w = dr.textlength(t, font=F)
+    dr.text(((SW - w) / 2, 8 + i * ZH), t, font=F, fill=255)
+SH = flach.size[1]
+OBEN = 0.55                                      # Breite oben : unten
+breit = [OBEN + (1 - OBEN) * (r + 0.5) / TH for r in range(TH)]
+acc = [0.0]                                      # Quellzeile je Schirmzeile: oben enger
+for s in breit: acc.append(acc[-1] + 1 / s)
+px = flach.load()
+k = SW / (TW * 1.0)                              # unten: ganze Blockbreite auf TW
+bits = []
+for r in range(TH):
+    s = breit[r]
+    reihe = []
+    for x in range(TW):
+        sum_ = 0
+        for dy in (0.25, 0.75):                  # 2x2 Abtastung
+            v = (acc[r] + dy * (acc[r + 1] - acc[r])) / acc[-1] * SH
+            for dx in (0.25, 0.75):
+                u = SW / 2 + ((x + dx) - TW / 2) * k / s
+                if 0 <= u < SW and 0 <= v < SH: sum_ += px[int(u), int(v)]
+        reihe.append(1 if sum_ >= 2 * 255 else 0)
+    bits.append(reihe)
+with open('TITEL.H', 'w', newline='\r\n') as f:
+    f.write('/* TITEL.H - Vorspann, %dx%d, 1 Bit, oberste Zeile zuerst (mkres.py) */\n' % (TW, TH))
+    f.write('#define TW %d\n#define TH %d\nstatic const BYTE titel[TH][TW / 8] = {\n' % (TW, TH))
+    for reihe in bits:
+        by = [sum(reihe[i + j] << (7 - j) for j in range(8)) for i in range(0, TW, 8)]
+        f.write(' {' + ','.join('%d' % b for b in by) + '},\n')
+    f.write('};\n')
+Image.frombytes('1', (TW, TH), bytes(sum(([sum(r[i + j] << (7 - j) for j in range(8)) for i in range(0, TW, 8)] for r in bits), []))).save('res/titel.png')

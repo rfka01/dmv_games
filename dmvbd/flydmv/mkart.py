@@ -38,6 +38,27 @@ def save_bmp(im, path):
     fh = b'BM' + struct.pack('<IHHI', off + len(bits), 0, 0, off)
     open(path, 'wb').write(fh + hdr + pal + bits)
 
+def save_mask(im, path):
+    """1-bit mask for Windows: 1 (white) = background (night sky), 0 = sprite.
+    Windows maps the night-sky colour of a bitmap to black, the sky brush
+    is dithered; FLYDMV paints the background through this mask."""
+    w, h = im.size; px = im.load(); import struct
+    stride = ((w + 31) // 32) * 4; rows = []
+    for y in range(h - 1, -1, -1):
+        r = bytearray(stride)
+        for x in range(w):
+            if px[x, y] & 15 == NAVY: r[x // 8] |= 0x80 >> (x % 8)
+        rows.append(bytes(r))
+    bits = b''.join(rows)
+    hdr = struct.pack('<IiiHHIIiiII', 40, w, h, 1, 1, 0, len(bits), 0, 0, 2, 2)
+    off = 14 + 40 + 8
+    open(path, 'wb').write(b'BM' + struct.pack('<IHHI', off + len(bits), 0, 0, off) + hdr
+                           + bytes((0, 0, 0, 0, 255, 255, 255, 0)) + bits)
+
+def save_both(im, path):
+    save_bmp(im, path)
+    d, f = os.path.split(path); save_mask(im, os.path.join(d, 'M' + f))
+
 def dmv(flame):
     """NCR DMV after the gray cabinet of our MAME layout (dmv.lay), 96 x 56:
     screen left, panel with two vertical floppy drives right, knobs and the
@@ -190,13 +211,13 @@ def banner(phase):
 
 def main(out):
     os.makedirs(out, exist_ok=True)
-    for i in range(2): save_bmp(dmv(i * 3), f'{out}/DMV{i}.BMP')
+    for i in range(2): save_both(dmv(i * 3), f'{out}/DMV{i}.BMP')
     rainbow = [RED, YEL, GRN, CYA, BLU, MAG]
     for c, col in enumerate(rainbow):
-        for k in range(4): save_bmp(floppy(col, k * 22.5), f'{out}/D{c}{k}.BMP')
-    save_bmp(sun(), f'{out}/SUN.BMP'); save_bmp(planet(), f'{out}/PLANET.BMP')
-    for k in range(4): save_bmp(star(k), f'{out}/STAR{k}.BMP')
-    for k in range(3): save_bmp(banner(k), f'{out}/BAN{k}.BMP')
+        for k in range(4): save_both(floppy(col, k * 22.5), f'{out}/D{c}{k}.BMP')
+    save_both(sun(), f'{out}/SUN.BMP'); save_both(planet(), f'{out}/PLANET.BMP')
+    for k in range(4): save_both(star(k), f'{out}/STAR{k}.BMP')
+    for k in range(3): save_both(banner(k), f'{out}/BAN{k}.BMP')
     # setting 3 (type 3 = choice list, default = entry number)
     import struct
     names = ['Disketten', 'Banner', 'Wechsel']
